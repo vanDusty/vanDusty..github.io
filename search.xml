@@ -572,6 +572,90 @@
       </tags>
   </entry>
   <entry>
+    <title>Spring 从应用获取Bean的常用姿势</title>
+    <url>/2020/01/03/961239cf.html</url>
+    <content><![CDATA[<blockquote>
+<p>如何在普通类中获取 <code>Spring</code> 管理的 <code>Bean</code> ,各种姿势，从本文中寻找。</p>
+</blockquote>
+<a id="more"></a>
+
+<p>通常，在<code>Spring</code>应用程序中，当我们使用<code>@Bean</code>/<code>@Service</code>/<code>@Controller</code>、<code>@Component</code>/<code>@Configuration</code>或者其它的注解将<code>Bean</code>注入的<code>Spring IOC</code>。然后我们可以使用<code>@Autowired</code>或者<code>@Resource</code>来使用由<code>Spring IoC</code>来管理的<code>Bean</code>。</p>
+<h2 id="一、从应用程序上下文中获取Bean"><a href="#一、从应用程序上下文中获取Bean" class="headerlink" title="一、从应用程序上下文中获取Bean"></a>一、从应用程序上下文中获取<code>Bean</code></h2><p>我们今天学习将来如何从<code>ApplicationContext</code>中的<code>Bean</code>。因为有些情况下我们不得不从应用程序上下文中来获取<code>Bean</code>，例如在没有注入<code>Spring</code>的工具类中。</p>
+<h3 id="1-1-在初始化时保存ApplicationContext对象"><a href="#1-1-在初始化时保存ApplicationContext对象" class="headerlink" title="1.1  在初始化时保存ApplicationContext对象"></a>1.1  在初始化时保存<code>ApplicationContext</code>对象</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">ApplicationContext ac = <span class="keyword">new</span> FileSystemXmlApplicationContext(<span class="string">"applicationContext.xml"</span>); </span><br><span class="line">ac.getBean(<span class="string">"beanId"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这种方式适用于采用<code>Spring</code>框架的独立应用程序，需要程序通过配置文件手工初始化<code>Spring</code>的情况。</p>
+<p>注意：在获取失败时抛出异常。</p>
+<h3 id="1-2-通过Spring提供的工具类获取ApplicationContext对象"><a href="#1-2-通过Spring提供的工具类获取ApplicationContext对象" class="headerlink" title="1.2 通过Spring提供的工具类获取ApplicationContext对象"></a>1.2 通过<code>Spring</code>提供的工具类获取<code>ApplicationContext</code>对象</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">ApplicationContext ac1 = WebApplicationContextUtils.getRequiredWebApplicationContext(ServletContext sc); </span><br><span class="line">ApplicationContext ac2 = WebApplicationContextUtils.getWebApplicationContext(ServletContext sc); </span><br><span class="line">ac1.getBean(<span class="string">"beanId"</span>); </span><br><span class="line">ac2.getBean(<span class="string">"beanId"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这种方式适合于采用<code>Spring</code>框架的<code>B/S</code>系统，通过<code>ServletContext</code>对象获取<code>ApplicationContext</code>对象，然后在通过它获取需要的类实例。获取失败时返回<code>null</code>。</p>
+<h3 id="1-3-继承自抽象类ApplicationObjectSupport"><a href="#1-3-继承自抽象类ApplicationObjectSupport" class="headerlink" title="1.3 继承自抽象类ApplicationObjectSupport"></a>1.3 继承自抽象类<code>ApplicationObjectSupport</code></h3><p>抽象类<code>ApplicationObjectSupport</code>提供<code>getApplicationContext()</code>方法，可以方便的获取<code>ApplicationContext</code>。</p>
+<p><code>Spring</code>初始化时，会通过该抽象类的<code>setApplicationContext(ApplicationContext context)</code>方法将<code>ApplicationContext</code> 对象注入。</p>
+<h3 id="1-4-继承自抽象类WebApplicationObjectSupport"><a href="#1-4-继承自抽象类WebApplicationObjectSupport" class="headerlink" title="1.4 继承自抽象类WebApplicationObjectSupport"></a>1.4 继承自抽象类<code>WebApplicationObjectSupport</code></h3><p>类似上面方法，调用<code>getWebApplicationContext()</code>获取<code>WebApplicationContext</code></p>
+<h3 id="1-5-通过Spring提供的ContextLoader"><a href="#1-5-通过Spring提供的ContextLoader" class="headerlink" title="1.5 通过Spring提供的ContextLoader"></a>1.5 通过<code>Spring</code>提供的<code>ContextLoader</code></h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">WebApplicationContext wac = ContextLoader.getCurrentWebApplicationContext();</span><br><span class="line">wac.getBean(beanID);</span><br></pre></td></tr></table></figure>
+
+<p>该方式不依赖于<code>servlet</code>,不需要注入的方式。</p>
+<h3 id="1-6-实现接口ApplicationContextAware-本文重点"><a href="#1-6-实现接口ApplicationContextAware-本文重点" class="headerlink" title="1.6 实现接口ApplicationContextAware(本文重点)"></a>1.6 实现接口<code>ApplicationContextAware</code>(本文重点)</h3><p>实现该接口的<code>setApplicationContext(ApplicationContext context)</code>方法，并保存<code>ApplicationContext</code> 对象。<code>Spring</code>初始化时，会通过该方法将<code>ApplicationContext</code>对象注入。</p>
+<h2 id="二、Spring-ApplicationContext-工具类"><a href="#二、Spring-ApplicationContext-工具类" class="headerlink" title="二、Spring ApplicationContext 工具类"></a>二、<code>Spring ApplicationContext</code> 工具类</h2><h3 id="2-1-项目准备"><a href="#2-1-项目准备" class="headerlink" title="2.1 项目准备"></a>2.1 项目准备</h3><blockquote>
+<p>新增一个<code>Bean</code>，使其被<code>Spring IOC</code> 管理。 </p>
+</blockquote>
+<ul>
+<li><code>SpringBean.java</code></li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SpringBean</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String desc;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getDesc</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"SpringBean desc"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>application.yml</code></li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">demo:</span><br><span class="line">  value: 8888</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-定义一个工具类，实现-ApplicationContextAware"><a href="#2-2-定义一个工具类，实现-ApplicationContextAware" class="headerlink" title="2.2 定义一个工具类，实现 ApplicationContextAware"></a>2.2 定义一个工具类，实现 <code>ApplicationContextAware</code></h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">SpringUtils</span> <span class="keyword">implements</span> <span class="title">ApplicationContextAware</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Spring应用上下文环境</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> ApplicationContext applicationContext;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 实现ApplicationContextAware接口的回调方法，设置上下文环境</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> applicationContext</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> BeansException</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setApplicationContext</span><span class="params">(ApplicationContext applicationContext)</span> <span class="keyword">throws</span> BeansException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (SpringUtils.applicationContext == <span class="keyword">null</span>) &#123;</span><br><span class="line">            SpringUtils.applicationContext = applicationContext;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取对象，重写了bean方法</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> clazz</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> &lt;T&gt;</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; <span class="function">T <span class="title">getBean</span><span class="params">(Class&lt;T&gt; clazz)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> SpringUtils.applicationContext.getBean(clazz);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 同上方法</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> name</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Object <span class="title">getBean</span><span class="params">(String name)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> SpringUtils.applicationContext.getBean(name);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 如果BeanFactory包含一个与所给名称匹配的bean定义，则返回true</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> name</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">containsBean</span><span class="params">(String name)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> SpringUtils.applicationContext.containsBean(name);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 读取配置信息</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> key</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">getProperty</span><span class="params">(String key)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> SpringUtils.applicationContext.getEnvironment().getProperty(key);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>通过<code>@Component</code>注解将<code>SpringUtils.java</code>注入的<code>Spring IOC</code>，<code>Spring</code>能够为我们自动地执行 <code>setApplicationContext()</code> 方法；</li>
+<li>我在该工具类封装了三个方法，主要用于获取<code>Bean</code>/判断<code>Bean</code>是否存在/获取配置文件中信息。</li>
+</ol>
+<h3 id="2-3-getBean"><a href="#2-3-getBean" class="headerlink" title="2.3 getBean()"></a>2.3 <code>getBean()</code></h3><blockquote>
+<p>该方法用于获取对象，获取不到会抛异常。</p>
+</blockquote>
+<ul>
+<li>测试</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">getBeanDemo</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    SpringBean springBean = SpringUtils.getBean(SpringBean<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">    log.info(<span class="string">"springBean.desc:&#123;&#125;"</span>, springBean.getDesc());</span><br><span class="line">    <span class="comment">// 如果bean 不存在</span></span><br><span class="line">    log.info(<span class="string">"springBeanOther:&#123;&#125;"</span>, SpringUtils.getBean(<span class="string">"springBeanOther"</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-containsBean"><a href="#2-4-containsBean" class="headerlink" title="2.4 containsBean()"></a>2.4 <code>containsBean()</code></h3><blockquote>
+<p>用来判断该<code>Bean</code> 是否注入到<code>Spring IOC</code>。</p>
+</blockquote>
+<ul>
+<li>测试</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">containsBeanDemo</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    log.info(<span class="string">"containsBean:&#123;&#125;"</span>, SpringUtils.containsBean(<span class="string">"springBean"</span>));</span><br><span class="line">    <span class="comment">// 如果bean 不存在</span></span><br><span class="line">    log.info(<span class="string">"containsBean:&#123;&#125;"</span>, SpringUtils.containsBean(<span class="string">"springBeanOther"</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-5-getProperty"><a href="#2-5-getProperty" class="headerlink" title="2.5 getProperty()"></a>2.5 <code>getProperty()</code></h3><blockquote>
+<p>用来获取配置文件属性，属性不存在返回<code>null</code>。</p>
+</blockquote>
+<ul>
+<li>测试</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">getPropertyDemo</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String value = SpringUtils.getProperty(<span class="string">"demo.value"</span>);</span><br><span class="line">    log.info(<span class="string">"value:&#123;&#125;"</span>, value);</span><br><span class="line">    <span class="comment">// 配置中不存在</span></span><br><span class="line">    String key = SpringUtils.getProperty(<span class="string">"demo.key"</span>);</span><br><span class="line">    log.info(<span class="string">"key:&#123;&#125;"</span>, key);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h2><p>这里仅作简单展示，如需探究更多使用方法，可以直接定义<code>getApplicationContext()</code>方法，将<code>ApplicationContext</code>返回，具体详见文末工具类中代码。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">getApplicationContext</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ApplicationContext context = SpringUtils.getApplicationContext();</span><br><span class="line">    log.info(<span class="string">"context.containsBean():&#123;&#125;"</span>, context.containsBean(<span class="string">"springBean"</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://github.com/vanDusty/Spring-Home/tree/master/spring-case/spring-demo" target="_blank" rel="noopener">Github 示例代码</a></p>
+<ol>
+<li><a href="https://github.com/vanDusty/Spring-Home/blob/master/spring-case/spring-demo/src/main/java/cn/van/spring/demo/util/SpringUtils.java" target="_blank" rel="noopener">SpringUtils.java</a></li>
+<li><a href="https://github.com/vanDusty/Spring-Home/blob/master/spring-case/spring-demo/src/test/java/cn/van/spring/demo/SpringUtilsTest.java" target="_blank" rel="noopener">SpringUtilsTest.java</a></li>
+</ol>
+]]></content>
+      <categories>
+        <category>Spring</category>
+      </categories>
+      <tags>
+        <tag>Spring</tag>
+        <tag>Bean</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>彻底消灭if-else嵌套</title>
     <url>/2020/01/01/7b2533d5.html</url>
     <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><h3 id="1-1-反面教材"><a href="#1-1-反面教材" class="headerlink" title="1.1 反面教材"></a>1.1 反面教材</h3><p>不知大家有没遇到过像<strong>横放着的金字塔</strong>一样的<code>if-else</code>嵌套：</p>
@@ -754,6 +838,67 @@
         <tag>if else</tag>
         <tag>工厂模式</tag>
         <tag>策略模式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Spring 计时器 StopWatch</title>
+    <url>/2020/01/01/6900a0bb.html</url>
+    <content><![CDATA[<blockquote>
+<p>如果你也觉得<code>System.currentTimeMillis()</code>用起来太麻烦了，欢迎加入<code>StopWatch</code>的怀抱。</p>
+</blockquote>
+<a id="more"></a>
+
+<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>在我们平时开发中，多多少少会遇到统计一段代码片段的耗时的情况，最简单的方法就是打印当前时间与执行完时间的差值。还可能会想到<code>AOP</code>，使用切面可以无侵入的实现，但是该方法统计粒度为方法级别，方法内部的各个任务耗时无法统计。</p>
+<h2 id="二、Spring的StopWatch"><a href="#二、Spring的StopWatch" class="headerlink" title="二、Spring的StopWatch"></a>二、<code>Spring</code>的<code>StopWatch</code></h2><blockquote>
+<p><code>spring-framework</code>提供了一个<code>StopWatch</code>类可以做类似任务执行时间控制，也就是封装了一个对开始时间，结束时间记录操作的<code>Java</code>类。</p>
+</blockquote>
+<p><code>StopWatch</code>对于秒、毫秒为单位方便计时的程序，假如我们手里面有几个在顺序上前后执行的几个任务，而且我们比较关心几个任务分别执行的时间占用状况，希望能够形成一个不太复杂的日志输出，<code>StopWatch</code>提供了这样的功能。</p>
+<h3 id="2-1-开箱即用"><a href="#2-1-开箱即用" class="headerlink" title="2.1 开箱即用"></a>2.1 开箱即用</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stopWatchDemo</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line"></span><br><span class="line">    StopWatch sw = <span class="keyword">new</span> StopWatch();</span><br><span class="line"></span><br><span class="line">    sw.start(<span class="string">"起床"</span>);</span><br><span class="line">    Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">    sw.stop();</span><br><span class="line"></span><br><span class="line">    sw.start(<span class="string">"洗漱"</span>);</span><br><span class="line">    Thread.sleep(<span class="number">2000</span>);</span><br><span class="line">    sw.stop();</span><br><span class="line"></span><br><span class="line">    sw.start(<span class="string">"锁门"</span>);</span><br><span class="line">    Thread.sleep(<span class="number">500</span>);</span><br><span class="line">    sw.stop();</span><br><span class="line"></span><br><span class="line">    log.info(<span class="string">"all cost info:&#123;&#125;"</span>,sw.prettyPrint());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>先<code>new</code>一个<code>StopWatch</code>然后将这个实例<code>start(&quot;任务名称&quot;)</code>；</li>
+<li>一个任务执行完毕则执行<code>stop()</code>；</li>
+<li>下一个任务开启前<code>start(“下一任务名称‘)</code>；</li>
+<li>最后可以调用 <code>prettyPrint()</code>方法返回一个小型的报表，输出代码执行耗时，以及执行时间百分比。</li>
+</ol>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">20:00:42.981 [main] INFO cn.van.spring.demo.StopWatchTest - all cost info:StopWatch '': running time (millis) = 3506</span><br><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">01000  029%  起床</span><br><span class="line">02002  057%  洗漱</span><br><span class="line">00504  014%  锁门</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-更多用法"><a href="#2-2-更多用法" class="headerlink" title="2.2 更多用法"></a>2.2 更多用法</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stopWatchDemo</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line"></span><br><span class="line">    StopWatch sw = <span class="keyword">new</span> StopWatch();</span><br><span class="line">    <span class="comment">// start 开始记录指定任务</span></span><br><span class="line">    sw.start(<span class="string">"起床"</span>);</span><br><span class="line">    Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">    <span class="comment">// stop 停止记录</span></span><br><span class="line">    sw.stop();</span><br><span class="line"></span><br><span class="line">    sw.start(<span class="string">"洗漱"</span>);</span><br><span class="line">    Thread.sleep(<span class="number">2000</span>);</span><br><span class="line">    sw.stop();</span><br><span class="line"></span><br><span class="line">    sw.start(<span class="string">"锁门"</span>);</span><br><span class="line">    Thread.sleep(<span class="number">500</span>);</span><br><span class="line">    sw.stop();</span><br><span class="line">    <span class="comment">// 输出代码执行耗时，以及执行时间百分比。</span></span><br><span class="line">    log.info(<span class="string">"all cost info:&#123;&#125;"</span>,sw.prettyPrint());</span><br><span class="line">    <span class="comment">// 统计输出总耗时</span></span><br><span class="line">    log.info(<span class="string">"all costTime:&#123;&#125;"</span>,sw.getTotalTimeMillis());</span><br><span class="line">    <span class="comment">// 返回简短的总耗时描述</span></span><br><span class="line">    log.info(<span class="string">"fff:&#123;&#125;"</span>,sw.shortSummary());</span><br><span class="line">    <span class="comment">// 最后一个任务的名称/耗时</span></span><br><span class="line">    log.info(<span class="string">"last taskName:&#123;&#125;"</span>,sw.getLastTaskName());</span><br><span class="line">    log.info(<span class="string">"last taskInfo:&#123;&#125;"</span>,sw.getLastTaskTimeMillis());</span><br><span class="line">    <span class="comment">// 返回统计时间任务的数量</span></span><br><span class="line">    log.info(<span class="string">"last taskCount:&#123;&#125;"</span>,sw.getTaskCount());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><code>getTotalTimeSeconds()</code>:获取总耗时秒，同时也有获取毫秒的方法；</li>
+<li><code>prettyPrint()</code>: 优雅的格式打印结果，表格形式；</li>
+<li><code>shortSummary()</code>:返回简短的总耗时描述；</li>
+<li><code>getTaskCount()</code>:返回统计时间任务的数量；</li>
+<li><code>getLastTaskName()</code>/<code>getLastTaskTimeMillis()</code>: 返回最后一个任务对象的名称/耗时。</li>
+</ol>
+<p><a href="https://docs.spring.io/spring/docs/current/javadoc-api/org/springframework/util/StopWatch.html" target="_blank" rel="noopener">官方文档</a></p>
+<h3 id="2-3-优缺点"><a href="#2-3-优缺点" class="headerlink" title="2.3 优缺点"></a>2.3 优缺点</h3><ul>
+<li><p>优点</p>
+<ol>
+<li><code>spring</code>自带工具类，可直接使用；</li>
+<li>代码实现简单，使用更简单；</li>
+<li>统一归纳，展示每项任务耗时与占用总时间的百分比，展示结果直观；</li>
+<li>性能消耗相对较小，并且最大程度的保证了<code>start</code>与<code>stop</code>之间的时间记录的准确性；</li>
+<li>可在<code>start</code>时直接指定任务名字，从而更加直观的显示记录结果。</li>
+</ol>
+</li>
+<li><p>缺点</p>
+<ol>
+<li>一个<code>StopWatch</code>实例一次只能开启一个<code>task</code>，不能同时<code>start</code>多个<code>task</code>，并且在该<code>task</code>未<code>stop</code>之前不能<code>start</code>一个新的<code>task</code>；</li>
+<li>相较于<code>AOP</code>，代码入侵性强。</li>
+</ol>
+</li>
+</ul>
+<h2 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h2><p>使用<code>Spring</code>提供的这个监视器，不仅可以省略大量的<code>System.currentTimeMillis()</code>及运算，而且它提供的<code>prettyPrint()</code>打印在日志里进行分析可以非常的直观。</p>
+<p><a href="https://github.com/vanDusty/Spring-Home/blob/master/spring-case/spring-demo/src/test/java/cn/van/spring/demo/StopWatchTest.java" target="_blank" rel="noopener">Github 示例代码</a></p>
+]]></content>
+      <categories>
+        <category>Spring</category>
+      </categories>
+      <tags>
+        <tag>Spring</tag>
+        <tag>计时</tag>
       </tags>
   </entry>
   <entry>
@@ -982,13 +1127,12 @@
       </tags>
   </entry>
   <entry>
-    <title>你还在用BeanUtils进行对象属性拷贝？</title>
-    <url>/2019/11/06/747d9a37.html</url>
-    <content><![CDATA[<p>在做业务的时候，为了隔离变化，我们会将<code>DAO</code>查询出来的<code>DO</code>和对前端提供的<code>DTO</code>隔离开来。大概<code>90%</code>的时候，它们的结构都是类似的；但是我们很不喜欢写很多冗长的<code>b.setF1(a.getF1())</code>这样的代码，于是我们需要简化对象拷贝方式。</p>
+    <title>Spring 对象属性拷贝方式总结</title>
+    <url>/2019/11/02/747d9a37.html</url>
+    <content><![CDATA[<p>当get/set太繁琐时；当BeanUtils无法拷贝集合时；当。。。可能，你需要好好看看这篇文章。文末附完整示例代码。</p>
 <a id="more"></a>
-<blockquote>
-<p>大多时候时候使用的是<code>Apache</code>或<code>Spring``BeanUtils</code>，今天，我们来看一下一个更高效的属性拷贝方式：<code>BeanCopier</code>。</p>
-</blockquote>
+
+<h1 id="对象属性拷贝"><a href="#对象属性拷贝" class="headerlink" title="对象属性拷贝"></a>对象属性拷贝</h1><p>在做业务的时候，为了隔离变化，我们会将<code>DAO</code>查询出来的<code>DO</code>和对前端提供的<code>DTO</code>隔离开来。大概<code>90%</code>的时候，它们的结构都是类似的；但是我们很不喜欢写很多冗长的<code>b.setF1(a.getF1())</code>这样的代码，于是我们需要简化对象拷贝方式。</p>
 <h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><h3 id="1-1-对象拷贝概念"><a href="#1-1-对象拷贝概念" class="headerlink" title="1.1 对象拷贝概念"></a>1.1 对象拷贝概念</h3><p><code>Java</code>中，数据类型分为值类型（基本数据类型）和引用类型，值类型包括<code>int</code>、<code>double</code>、<code>byte</code>、<code>boolean</code>、<code>char</code>等简单数据类型，引用类型包括类、接口、数组等复杂类型。</p>
 <p>对象拷贝分为<strong>浅拷贝(浅克隆)</strong>与<strong>深拷贝(深克隆)</strong>。</p>
 <ul>
@@ -1008,186 +1152,276 @@
 <td>创建一个新对象，然后将当前对象的非静态字段复制到该新对象，无论该字段是值类型的还是引用类型，都<strong>复制独立的一份</strong>。当你修改其中一个对象的任何内容时，都不会影响另一个对象的内容。</td>
 </tr>
 </tbody></table>
-<p><a href="https://www.cnblogs.com/ysocean/p/8482979.html" target="_blank" rel="noopener">参考文章</a></p>
-<h3 id="1-2-示例前准备"><a href="#1-2-示例前准备" class="headerlink" title="1.2 示例前准备"></a>1.2 示例前准备</h3><ul>
-<li>源对象属性类<code>UserDO.class</code>(以下示例，源对象都用这个)</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">UserDO</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> id;</span><br><span class="line">    <span class="keyword">private</span> String userName;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 以下两个字段用户模拟自定义转换</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> LocalDateTime gmtBroth;</span><br><span class="line">    <span class="keyword">private</span> BigDecimal balance;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">UserDO</span><span class="params">(Integer id, String userName, LocalDateTime gmtBroth, BigDecimal balance)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.id = id;</span><br><span class="line">        <span class="keyword">this</span>.userName = userName;</span><br><span class="line">        <span class="keyword">this</span>.gmtBroth = gmtBroth;</span><br><span class="line">        <span class="keyword">this</span>.balance = balance;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>造数据工具类<code>DataUtil.class</code></li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DataUtil</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 模拟查询出一条数据</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> UserDO <span class="title">createData</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> UserDO(<span class="number">1</span>, <span class="string">"Van"</span>, LocalDateTime.now(),<span class="keyword">new</span> BigDecimal(<span class="number">100L</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 模拟查询出多条数据</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> num 数量</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> List&lt;UserDO&gt; <span class="title">createDataList</span><span class="params">(<span class="keyword">int</span> num)</span> </span>&#123;</span><br><span class="line">        List&lt;UserDO&gt; userDOS = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; num; i++) &#123;</span><br><span class="line">            UserDO userDO = <span class="keyword">new</span> UserDO(i+<span class="number">1</span>, <span class="string">"Van"</span>, LocalDateTime.now(),<span class="keyword">new</span> BigDecimal(<span class="number">100L</span>));</span><br><span class="line">            userDOS.add(userDO);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> userDOS;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="二、对象拷贝之BeanUtils"><a href="#二、对象拷贝之BeanUtils" class="headerlink" title="二、对象拷贝之BeanUtils"></a>二、对象拷贝之BeanUtils</h2><blockquote>
-<p><code>Apache</code>和<code>Spring</code>均有<code>BeanUtils</code>工具类， <code>Apache</code>的<code>BeanUtils</code>稳定性与效率都不行;<code>Spring</code>的<code>BeanUtils</code>比较稳定，不会因为量大了，耗时明显增加，故一般都使用<code>Spring</code>的<code>BeanUtils</code>。</p>
+<blockquote>
+<p>参考文章：<a href="https://www.cnblogs.com/ysocean/p/8482979.html" target="_blank" rel="noopener">Java的深拷贝和浅拷贝</a></p>
 </blockquote>
-<h3 id="2-1-源码解读"><a href="#2-1-源码解读" class="headerlink" title="2.1 源码解读"></a>2.1 源码解读</h3><p><code>Spring</code>中的<code>BeanUtils</code>，其中实现的方式很简单，就是对两个对象中相同名字的属性进行简单<code>get/set</code>，仅检查属性的可访问性。</p>
+<h3 id="1-2-为什么需要拷贝对象"><a href="#1-2-为什么需要拷贝对象" class="headerlink" title="1.2 为什么需要拷贝对象"></a>1.2 为什么需要拷贝对象</h3><ol>
+<li><code>Entity</code>对应的是持久层数据结构（一般是数据库表的映射模型）;</li>
+<li><code>Model</code> 对应的是业务层的数据结构;</li>
+<li><code>VO</code> 就是<code>Controller</code>和客户端交互的数据结构。</li>
+</ol>
+<blockquote>
+<p>例如：数据库查询出来的用户信息(表的映射模型)是<code>UserDO</code>，但是我们需要传递给客户端的是<code>UserVO</code>,这时候就需要把<code>UserDO</code>实例的属性一个一个赋值到<code>UserVO</code>实例中。</p>
+</blockquote>
+<p><strong>在这些数据结构之间很大一部分属性都可能会相同，也可能不同。</strong></p>
+<h3 id="1-3-有哪些拷贝方式"><a href="#1-3-有哪些拷贝方式" class="headerlink" title="1.3 有哪些拷贝方式"></a>1.3 有哪些拷贝方式</h3><ol>
+<li><code>org.springframework.beans.BeanUtils</code> ；</li>
+<li><code>org.springframework.cglib.beans.BeanCopier</code>；</li>
+<li><code>ma.glasnost.orika</code>；</li>
+<li><code>org.mapstruct</code>（<strong>强烈推荐</strong>）。</li>
+</ol>
+<h2 id="二、BeanUtils"><a href="#二、BeanUtils" class="headerlink" title="二、BeanUtils"></a>二、<code>BeanUtils</code></h2><blockquote>
+<p><code>Spring</code>中的<code>BeanUtils</code>，其中实现的方式很简单，就是对两个对象中相同名字的属性进行简单<code>get/set</code>，仅检查属性的可访问性。</p>
+</blockquote>
 <p><a href="https://docs.spring.io/spring/docs/current/javadoc-api/org/springframework/beans/BeanUtils.html" target="_blank" rel="noopener">BeanUtils 源码</a></p>
 <p>可以看到, 成员变量赋值是基于目标对象的成员列表, 并且会跳过<code>ignore</code>的以及在源对象中不存在的, 所以这个方法是安全的, 不会因为两个对象之间的结构差异导致错误, 但是必须保证同名的两个成员变量类型相同。</p>
-<h3 id="2-2-示例"><a href="#2-2-示例" class="headerlink" title="2.2 示例"></a>2.2 示例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Slf</span>4j</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BeanUtilsDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">long</span> start = System.currentTimeMillis();</span><br><span class="line">        UserDO userDO = DataUtil.createData();</span><br><span class="line">        log.info(<span class="string">"拷贝前,userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">        UserDTO userDTO = <span class="keyword">new</span> UserDTO();</span><br><span class="line">        BeanUtils.copyProperties(userDO,userDTO);</span><br><span class="line">        log.info(<span class="string">"拷贝后,userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-1、单个对象拷贝"><a href="#2-1、单个对象拷贝" class="headerlink" title="2.1、单个对象拷贝"></a>2.1、单个对象拷贝</h3><p>我们把数据库查询出来的<code>UserDO.java</code> 拷贝到 <code>UserVO.java</code>。直接使用<code>BeanUtils.copyProperties()</code>方法。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">commonCopy</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    UserDO userDO = <span class="keyword">new</span> UserDO(<span class="number">1L</span>, <span class="string">"Van"</span>, <span class="number">18</span>, <span class="number">1</span>);</span><br><span class="line">    UserVO userVO = <span class="keyword">new</span> UserVO();</span><br><span class="line">    BeanUtils.copyProperties(userDO, userVO);</span><br><span class="line">    log.info(<span class="string">"userVO:&#123;&#125;"</span>,userVO);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <ul>
-<li>结果</li>
+<li>拷贝结果：</li>
 </ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">18:12:11.734 [main] INFO cn.van.parameter.bean.copy.demo.BeanUtilsDemo - 拷贝前,userDO:UserDO(id=1, userName=Van, gmtBroth=2019-11-02T18:12:11.730, balance=100)</span><br><span class="line">18:12:11.917 [main] INFO cn.van.parameter.bean.copy.demo.BeanUtilsDemo - 拷贝后,userDO:UserDO(id=1, userName=Van, gmtBroth=2019-11-02T18:12:11.730, balance=100)</span><br></pre></td></tr></table></figure>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">.... userVO:UserVO(userId=1, userName=Van, age=18, sex=null)</span><br></pre></td></tr></table></figure>
 
-<h2 id="三、对象拷贝之BeanCopier"><a href="#三、对象拷贝之BeanCopier" class="headerlink" title="三、对象拷贝之BeanCopier"></a>三、对象拷贝之BeanCopier</h2><p><code>BeanCopier</code>是用于在两个<code>bean</code>之间进行属性拷贝的。<code>BeanCopier</code>支持两种方式:</p>
+<h3 id="2-2、集合拷贝"><a href="#2-2、集合拷贝" class="headerlink" title="2.2、集合拷贝"></a>2.2、集合拷贝</h3><p>刚刚拷贝的是一个对象，但是有时候我们想拷贝一组<code>UerDO.java</code>，是一个集合的时候就不能这样直接赋值了。如果还按照这种逻辑，如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">listCopyFalse</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;UserDO&gt; userDOList = <span class="keyword">new</span> ArrayList();</span><br><span class="line">    userDOList.add(<span class="keyword">new</span> UserDO(<span class="number">1L</span>, <span class="string">"Van"</span>, <span class="number">18</span>, <span class="number">1</span>));</span><br><span class="line">    userDOList.add(<span class="keyword">new</span> UserDO(<span class="number">2L</span>, <span class="string">"VanVan"</span>, <span class="number">18</span>, <span class="number">2</span>));</span><br><span class="line">    List&lt;UserVO&gt; userVOList = <span class="keyword">new</span> ArrayList();</span><br><span class="line">    BeanUtils.copyProperties(userDOList, userVOList);</span><br><span class="line">    log.info(<span class="string">"userVOList:&#123;&#125;"</span>,userVOList);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>拷贝结果：</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">.... userVOList:[]</span><br></pre></td></tr></table></figure>
+
+<p>通过日志可以发现，直接拷贝集合是无效的，那么怎么解决呢？</p>
+<h3 id="2-3-暴力拷贝（不推荐）"><a href="#2-3-暴力拷贝（不推荐）" class="headerlink" title="2.3 暴力拷贝（不推荐）"></a>2.3 暴力拷贝（不推荐）</h3><blockquote>
+<p>将需要拷贝的集合遍历，暴力拷贝。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">listCopyCommon</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;UserDO&gt; userDOList = <span class="keyword">new</span> ArrayList();</span><br><span class="line">    userDOList.add(<span class="keyword">new</span> UserDO(<span class="number">1L</span>, <span class="string">"Van"</span>, <span class="number">18</span>, <span class="number">1</span>));</span><br><span class="line">    userDOList.add(<span class="keyword">new</span> UserDO(<span class="number">2L</span>, <span class="string">"VanVan"</span>, <span class="number">20</span>, <span class="number">2</span>));</span><br><span class="line">    List&lt;UserVO&gt; userVOList = <span class="keyword">new</span> ArrayList();</span><br><span class="line">    userDOList.forEach(userDO -&gt;&#123;</span><br><span class="line">        UserVO userVO = <span class="keyword">new</span> UserVO();</span><br><span class="line">        BeanUtils.copyProperties(userDO, userVO);</span><br><span class="line">        userVOList.add(userVO);</span><br><span class="line">    &#125;);</span><br><span class="line">    log.info(<span class="string">"userVOList:&#123;&#125;"</span>,userVOList);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>拷贝结果：</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">.... userVOList:[UserVO(userId=1, userName=Van, age=18, sex=null), UserVO(userId=2, userName=VanVan, age=20, sex=null)]</span><br></pre></td></tr></table></figure>
+
+<p>虽然该方式可以解决，但是一点都不优雅，特别是写起来麻烦。</p>
+<h3 id="2-4-优雅拷贝（本文推荐）"><a href="#2-4-优雅拷贝（本文推荐）" class="headerlink" title="2.4 优雅拷贝（本文推荐）"></a>2.4 优雅拷贝（<strong>本文推荐</strong>）</h3><p>通过<code>JDK 8</code> 的函数式接口封装<code>org.springframework.beans.BeanUtils</code></p>
+<ul>
+<li>定义一个函数式接口</li>
+</ul>
+<p>函数式接口里是可以包含默认方法，这里我们定义默认回调方法。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@FunctionalInterface</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BeanUtilCopyCallBack</span> &lt;<span class="title">S</span>, <span class="title">T</span>&gt; </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 定义默认回调方法</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> t</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> s</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">callBack</span><span class="params">(S t, T s)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>封装一个工具类 <code>BeanUtilCopy.java</code></li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BeanUtilCopy</span> <span class="keyword">extends</span> <span class="title">BeanUtils</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 集合数据的拷贝</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> sources: 数据源类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> target: 目标类::new(eg: UserVO::new)</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> &lt;S, T&gt; <span class="function">List&lt;T&gt; <span class="title">copyListProperties</span><span class="params">(List&lt;S&gt; sources, Supplier&lt;T&gt; target)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> copyListProperties(sources, target, <span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 带回调函数的集合数据的拷贝（可自定义字段拷贝规则）</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> sources: 数据源类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> target: 目标类::new(eg: UserVO::new)</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> callBack: 回调函数</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> &lt;S, T&gt; <span class="function">List&lt;T&gt; <span class="title">copyListProperties</span><span class="params">(List&lt;S&gt; sources, Supplier&lt;T&gt; target, BeanUtilCopyCallBack&lt;S, T&gt; callBack)</span> </span>&#123;</span><br><span class="line">        List&lt;T&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;(sources.size());</span><br><span class="line">        <span class="keyword">for</span> (S source : sources) &#123;</span><br><span class="line">            T t = target.get();</span><br><span class="line">            copyProperties(source, t);</span><br><span class="line">            list.add(t);</span><br><span class="line">            <span class="keyword">if</span> (callBack != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="comment">// 回调</span></span><br><span class="line">                callBack.callBack(source, t);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> list;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>简单拷贝测试</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">listCopyUp</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;UserDO&gt; userDOList = <span class="keyword">new</span> ArrayList();</span><br><span class="line">    userDOList.add(<span class="keyword">new</span> UserDO(<span class="number">1L</span>, <span class="string">"Van"</span>, <span class="number">18</span>, <span class="number">1</span>));</span><br><span class="line">    userDOList.add(<span class="keyword">new</span> UserDO(<span class="number">2L</span>, <span class="string">"VanVan"</span>, <span class="number">20</span>, <span class="number">2</span>));</span><br><span class="line">    List&lt;UserVO&gt; userVOList = BeanUtilCopy.copyListProperties(userDOList, UserVO::<span class="keyword">new</span>);</span><br><span class="line">    log.info(<span class="string">"userVOList:&#123;&#125;"</span>,userVOList);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>拷贝结果：</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">.... userVOList:[UserVO(userId=1, userName=Van, age=18, sex=null), UserVO(userId=2, userName=VanVan, age=20, sex=null)]</span><br></pre></td></tr></table></figure>
+
+<p>通过如上方法，我们基本实现了集合的拷贝，但是从返回结果我们可以发现：<strong>属性不同的字段无法拷贝</strong>。</p>
+<p><strong>注意：</strong><br><code>UserDO.java</code> 和<code>UserVO.java</code> 最后一个字段<code>sex</code>类型不一样，分别是：<code>Integer</code>/<code>String</code></p>
+<blockquote>
+<p><strong>优化一下</strong></p>
+</blockquote>
+<ul>
+<li>新增性别枚举类</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> SexEnum &#123;</span><br><span class="line">    UNKNOW(<span class="string">"未设置"</span>,<span class="number">0</span>),</span><br><span class="line">    MEN(<span class="string">"男生"</span>, <span class="number">1</span>),</span><br><span class="line">    WOMAN(<span class="string">"女生"</span>,<span class="number">2</span>),</span><br><span class="line"></span><br><span class="line">    ;</span><br><span class="line">    <span class="keyword">private</span> String desc;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> code;</span><br><span class="line"></span><br><span class="line">    SexEnum(String desc, <span class="keyword">int</span> code) &#123;</span><br><span class="line">        <span class="keyword">this</span>.desc = desc;</span><br><span class="line">        <span class="keyword">this</span>.code = code;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> SexEnum <span class="title">getDescByCode</span><span class="params">(<span class="keyword">int</span> code)</span> </span>&#123;</span><br><span class="line">        SexEnum[] typeEnums = values();</span><br><span class="line">        <span class="keyword">for</span> (SexEnum value : typeEnums) &#123;</span><br><span class="line">            <span class="keyword">if</span> (code == value.getCode()) &#123;</span><br><span class="line">                <span class="keyword">return</span> value;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getDesc</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> desc;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDesc</span><span class="params">(String desc)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.desc = desc;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getCode</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> code;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setCode</span><span class="params">(<span class="keyword">int</span> code)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.code = code;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>带特定转换的集合拷贝</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">listCopyUpWithCallback</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;UserDO&gt; userDOList = <span class="keyword">new</span> ArrayList();</span><br><span class="line">    userDOList.add(<span class="keyword">new</span> UserDO(<span class="number">1L</span>, <span class="string">"Van"</span>, <span class="number">18</span>, <span class="number">1</span>));</span><br><span class="line">    userDOList.add(<span class="keyword">new</span> UserDO(<span class="number">2L</span>, <span class="string">"VanVan"</span>, <span class="number">20</span>, <span class="number">2</span>));</span><br><span class="line">    List&lt;UserVO&gt; userVOList = BeanUtilCopy.copyListProperties(userDOList, UserVO::<span class="keyword">new</span>, (userDO, userVO) -&gt; &#123;</span><br><span class="line">        <span class="comment">// 这里可以定义特定的转换规则</span></span><br><span class="line">        userVO.setSex(SexEnum.getDescByCode(userDO.getSex()).getDesc());</span><br><span class="line">    &#125;);</span><br><span class="line">    log.info(<span class="string">"userVOList:&#123;&#125;"</span>,userVOList);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>拷贝结果：</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">... userVOList:[UserVO(userId=1, userName=Van, age=18, sex=男生), UserVO(userId=2, userName=VanVan, age=20, sex=女生)]</span><br></pre></td></tr></table></figure>
+
+<p>通过打印结果可以发现，<code>UserDO.java</code> 中<code>Integer</code>类型的<code>sex</code>复制到<code>UserVO.java</code>成了<code>String</code>类型的男生/女生。</p>
+<h3 id="2-5-小结"><a href="#2-5-小结" class="headerlink" title="2.5 小结"></a>2.5 小结</h3><p>该方法是我们用的最多的方案，这里简单封装下，可以方便集合类型对象的拷贝，平常使用基本够用，仅供参考。</p>
+<ol>
+<li><a href="https://github.com/vanDusty/Spring-Home/blob/master/spring-case/bean-copy/src/test/java/cn/van/spring/copy/beanutils/BeanUtilsTest.java" target="_blank" rel="noopener">该部分测试代码</a></li>
+<li><a href="https://github.com/vanDusty/Spring-Home/tree/master/spring-case/bean-copy/src/main/java/cn/van/spring/copy/beanutils" target="_blank" rel="noopener">完整代码地址</a></li>
+</ol>
+<h2 id="三、BeanCopier"><a href="#三、BeanCopier" class="headerlink" title="三、BeanCopier"></a>三、<code>BeanCopier</code></h2><p><code>BeanCopier</code>是用于在两个<code>bean</code>之间进行属性拷贝的。<code>BeanCopier</code>支持两种方式:</p>
 <ol>
 <li>一种是不使用<code>Converter</code>的方式，仅对两个<code>bean</code>间属性名和类型完全相同的变量进行拷贝;</li>
 <li>另一种则引入<code>Converter</code>，可以对某些特定属性值进行特殊操作。</li>
 </ol>
-<h3 id="3-1-基本使用"><a href="#3-1-基本使用" class="headerlink" title="3.1 基本使用"></a>3.1 基本使用</h3><ul>
-<li>依赖</li>
-</ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>cglib<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>cglib-nodep<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.3.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p><strong>注意：</strong>该依赖非必须，因为<code>Spring</code>中已经集成了<code>cglib</code>,博主使用的就是<code>org.springframework.cglib.beans.BeanCopier</code>。</p>
-<h4 id="3-1-1-属性名称、类型都相同"><a href="#3-1-1-属性名称、类型都相同" class="headerlink" title="3.1.1 属性名称、类型都相同"></a>3.1.1 属性名称、类型都相同</h4><ul>
-<li>目标对象属性类</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">UserDTO</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> id;</span><br><span class="line">    <span class="keyword">private</span> String userName;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3-1-常规使用"><a href="#3-1-常规使用" class="headerlink" title="3.1 常规使用"></a>3.1 常规使用</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">normalCopy</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 模拟查询出数据</span></span><br><span class="line">    UserDO userDO = DataUtil.createData();</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">    <span class="comment">// 第一个参数：源对象， 第二个参数：目标对象，第三个参数：是否使用自定义转换器（下面会介绍），下同</span></span><br><span class="line">    BeanCopier b = BeanCopier.create(UserDO<span class="class">.<span class="keyword">class</span>, <span class="title">UserDTO</span>.<span class="title">class</span>, <span class="title">false</span>)</span>;</span><br><span class="line">    UserDTO userDTO = <span class="keyword">new</span> UserDTO();</span><br><span class="line">    b.copy(userDO, userDTO, <span class="keyword">null</span>);</span><br><span class="line">    log.info(<span class="string">"拷贝后：userDTO:&#123;&#125;"</span>, userDTO);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <ul>
-<li>测试方法</li>
+<li>拷贝结果：</li>
 </ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 属性名称、类型都相同(部分属性不拷贝)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">normalCopy</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// 模拟查询出数据</span></span><br><span class="line">    UserDO userDO = DataUtil.createData();</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">    <span class="comment">// 第一个参数：源对象， 第二个参数：目标对象，第三个参数：是否使用自定义转换器（下面会介绍），下同</span></span><br><span class="line">    BeanCopier b = BeanCopier.create(UserDO<span class="class">.<span class="keyword">class</span>, <span class="title">UserDTO</span>.<span class="title">class</span>, <span class="title">false</span>)</span>;</span><br><span class="line">    UserDTO userDTO = <span class="keyword">new</span> UserDTO();</span><br><span class="line">    b.copy(userDO, userDTO, <span class="keyword">null</span>);</span><br><span class="line">    log.info(<span class="string">"拷贝后：userDTO:&#123;&#125;"</span>, userDTO);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">...... 拷贝前：userDO:UserDO(id=1, userName=Van, sex=0, gmtBroth=2019-11-02T18:24:24.077, balance=100)</span><br><span class="line">...... 拷贝后：userDTO:UserDTO(id=1, userName=Van, sex=null)</span><br></pre></td></tr></table></figure>
 
-<ul>
-<li>结果：拷贝成功</li>
-</ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">18:24:24.080 [main] INFO cn.van.parameter.bean.copy.demo.BeanCopierDemo - 拷贝前：userDO:UserDO(id=1, userName=Van, gmtBroth=2019-11-02T18:24:24.077, balance=100)</span><br><span class="line">18:24:24.200 [main] INFO cn.van.parameter.bean.copy.demo.BeanCopierDemo - 拷贝后：userDTO:UserDTO(id=1, userName=Van)</span><br></pre></td></tr></table></figure>
 
-<h4 id="3-1-2-属性名称相同、类型不同"><a href="#3-1-2-属性名称相同、类型不同" class="headerlink" title="3.1.2 属性名称相同、类型不同"></a>3.1.2 属性名称相同、类型不同</h4><ul>
-<li>目标对象属性类</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">UserEntity</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> Integer id;</span><br><span class="line">    <span class="keyword">private</span> String userName;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>测试方法</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 属性名称相同、类型不同</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">sameNameDifferentType</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 模拟查询出数据</span></span><br><span class="line">    UserDO userDO = DataUtil.createData();</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line"></span><br><span class="line">    BeanCopier b = BeanCopier.create(UserDO<span class="class">.<span class="keyword">class</span>, <span class="title">UserEntity</span>.<span class="title">class</span>, <span class="title">false</span>)</span>;</span><br><span class="line">    UserEntity userEntity = <span class="keyword">new</span> UserEntity();</span><br><span class="line">    b.copy(userDO, userEntity, <span class="keyword">null</span>);</span><br><span class="line">    log.info(<span class="string">"拷贝后：userEntity:&#123;&#125;"</span>, userEntity);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>结果</li>
-</ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">19:43:31.645 [main] INFO cn.van.parameter.bean.copy.demo.BeanCopierDemo - 拷贝前：userDO:UserDO(id=1, userName=Van, gmtBroth=2019-11-02T19:43:31.642, balance=100)</span><br><span class="line">19:43:31.748 [main] INFO cn.van.parameter.bean.copy.demo.BeanCopierDemo - 拷贝后：userEntity:UserEntity(id=null, userName=Van)</span><br></pre></td></tr></table></figure>
-<ul>
-<li>分析</li>
-</ul>
-<p>通过日志可以发现：<code>UserDO</code>的<code>int</code>类型的<code>id</code>无法拷贝到<code>UserEntity</code>的<code>Integer</code>的<code>id</code>。</p>
-<h4 id="3-1-3-小节"><a href="#3-1-3-小节" class="headerlink" title="3.1.3 小节"></a>3.1.3 小节</h4><p><code>BeanCopier</code>只拷贝名称和类型都相同的属性。</p>
+<p>通过结果发现：<code>UserDO</code>的<code>int</code>类型的<code>sex</code>无法拷贝到<code>UserDTO</code>的<code>Integer</code>的<code>sex</code>。</p>
+<p>即：<strong><code>BeanCopier</code>只拷贝名称和类型都相同的属性。</strong></p>
 <blockquote>
 <p>即使源类型是原始类型(<code>int</code>, <code>short</code>和<code>char</code>等)，目标类型是其包装类型(<code>Integer</code>, <code>Short</code>和<code>Character</code>等)，或反之：都不会被拷贝。 </p>
 </blockquote>
-<h3 id="3-2-自定义转换器"><a href="#3-2-自定义转换器" class="headerlink" title="3.2 自定义转换器"></a>3.2 自定义转换器</h3><p>通过<code>3.1.2</code>可知，当源和目标类的属性类型不同时，不能拷贝该属性，此时我们可以通过实现<code>Converter</code>接口来自定义转换器</p>
-<h4 id="3-2-1-准备"><a href="#3-2-1-准备" class="headerlink" title="3.2.1 准备"></a>3.2.1 准备</h4><ul>
+<h3 id="3-2-自定义转换器"><a href="#3-2-自定义转换器" class="headerlink" title="3.2 自定义转换器"></a>3.2 自定义转换器</h3><p>通过<code>3.1</code>可知，当源和目标类的属性类型不同时，不能拷贝该属性，此时我们可以通过实现<code>Converter</code>接口来自定义转换器</p>
+<ul>
 <li>目标对象属性类</li>
 </ul>
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">UserDomain</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> Integer id;</span><br><span class="line">    <span class="keyword">private</span> String userName;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 以下两个字段用户模拟自定义转换</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> String gmtBroth;</span><br><span class="line">    <span class="keyword">private</span> String balance;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-
-<h4 id="3-2-2-不使用Converter"><a href="#3-2-2-不使用Converter" class="headerlink" title="3.2.2 不使用Converter"></a>3.2.2 不使用<code>Converter</code></h4><ul>
-<li>测试方法</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 类型不同,不使用Converter</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">noConverterTest</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 模拟查询出数据</span></span><br><span class="line">    UserDO userDO = DataUtil.createData();</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">    BeanCopier copier = BeanCopier.create(UserDO<span class="class">.<span class="keyword">class</span>, <span class="title">UserDomain</span>.<span class="title">class</span>, <span class="title">false</span>)</span>;</span><br><span class="line">    UserDomain userDomain = <span class="keyword">new</span> UserDomain();</span><br><span class="line">    copier.copy(userDO, userDomain, <span class="keyword">null</span>);</span><br><span class="line">    log.info(<span class="string">"拷贝后：userDomain:&#123;&#125;"</span>, userDomain);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <ul>
-<li>结果</li>
-</ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">19:49:19.294 [main] INFO cn.van.parameter.bean.copy.demo.BeanCopierDemo - 拷贝前：userDO:UserDO(id=1, userName=Van, gmtBroth=2019-11-02T19:49:19.290, balance=100)</span><br><span class="line">19:49:19.394 [main] INFO cn.van.parameter.bean.copy.demo.BeanCopierDemo - 拷贝后：userDomain:UserDomain(id=null, userName=Van, gmtBroth=null, balance=null)</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>分析</li>
-</ul>
-<p>通过打印日志的前后对比，属性类型不同的字段<code>id</code>,<code>gmtBroth</code>,<code>balance</code>未拷贝。</p>
-<h4 id="3-2-3-使用Converter"><a href="#3-2-3-使用Converter" class="headerlink" title="3.2.3 使用Converter"></a>3.2.3 使用<code>Converter</code></h4><ul>
 <li>实现<code>Converter</code>接口来自定义属性转换</li>
 </ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span>  <span class="class"><span class="keyword">class</span> <span class="title">UserConverter</span> <span class="keyword">implements</span> <span class="title">Converter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 时间转换的格式</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    DateTimeFormatter dtf = DateTimeFormatter.ofPattern(<span class="string">"yyyy-MM-dd HH:mm:ss"</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 自定义属性转换</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> value 源对象属性类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> target 目标对象里属性对应set方法名,eg.setId</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context 目标对象属性类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">convert</span><span class="params">(Object value, Class target, Object context)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (value <span class="keyword">instanceof</span> Integer) &#123;</span><br><span class="line">            <span class="keyword">return</span> value;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (value <span class="keyword">instanceof</span> LocalDateTime) &#123;</span><br><span class="line">            LocalDateTime date = (LocalDateTime) value;</span><br><span class="line">            <span class="keyword">return</span> dtf.format(date);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (value <span class="keyword">instanceof</span> BigDecimal) &#123;</span><br><span class="line">            BigDecimal bd = (BigDecimal) value;</span><br><span class="line">            <span class="keyword">return</span> bd.toPlainString();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 更多类型转换请自定义</span></span><br><span class="line">        <span class="keyword">return</span> value;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span>  <span class="class"><span class="keyword">class</span> <span class="title">UserDomainConverter</span> <span class="keyword">implements</span> <span class="title">Converter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 时间转换的格式</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    DateTimeFormatter dtf = DateTimeFormatter.ofPattern(<span class="string">"yyyy-MM-dd HH:mm:ss"</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 自定义属性转换</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> value 源对象属性类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> target 目标对象里属性对应set方法名,eg.setId</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context 目标对象属性类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">convert</span><span class="params">(Object value, Class target, Object context)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (value <span class="keyword">instanceof</span> Integer) &#123;</span><br><span class="line">            <span class="keyword">return</span> value;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (value <span class="keyword">instanceof</span> LocalDateTime) &#123;</span><br><span class="line">            LocalDateTime date = (LocalDateTime) value;</span><br><span class="line">            <span class="keyword">return</span> dtf.format(date);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (value <span class="keyword">instanceof</span> BigDecimal) &#123;</span><br><span class="line">            BigDecimal bd = (BigDecimal) value;</span><br><span class="line">            <span class="keyword">return</span> bd.toPlainString();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 更多类型转换请自定义</span></span><br><span class="line">        <span class="keyword">return</span> value;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <ul>
 <li>测试方法</li>
 </ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 类型不同,使用Converter</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">converterTest</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 模拟查询出数据</span></span><br><span class="line">    UserDO userDO = DataUtil.createData();</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">    BeanCopier copier = BeanCopier.create(UserDO<span class="class">.<span class="keyword">class</span>, <span class="title">UserDomain</span>.<span class="title">class</span>, <span class="title">true</span>)</span>;</span><br><span class="line">    UserConverter converter = <span class="keyword">new</span> UserConverter();</span><br><span class="line">    UserDomain userDomain = <span class="keyword">new</span> UserDomain();</span><br><span class="line">    copier.copy(userDO, userDomain, converter);</span><br><span class="line">    log.info(<span class="string">"拷贝后：userDomain:&#123;&#125;"</span>, userDomain);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 类型不同,使用Converter</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">converterTest</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 模拟查询出数据</span></span><br><span class="line">    UserDO userDO = DataUtil.createData();</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">    BeanCopier copier = BeanCopier.create(UserDO<span class="class">.<span class="keyword">class</span>, <span class="title">UserDomain</span>.<span class="title">class</span>, <span class="title">true</span>)</span>;</span><br><span class="line">    UserDomainConverter converter = <span class="keyword">new</span> UserDomainConverter();</span><br><span class="line">    UserDomain userDomain = <span class="keyword">new</span> UserDomain();</span><br><span class="line">    copier.copy(userDO, userDomain, converter);</span><br><span class="line">    log.info(<span class="string">"拷贝后：userDomain:&#123;&#125;"</span>, userDomain);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <ul>
-<li>结果：全部拷贝</li>
+<li>拷贝结果：</li>
 </ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">19:51:11.989 [main] INFO cn.van.parameter.bean.copy.demo.BeanCopierDemo - 拷贝前：userDO:UserDO(id=1, userName=Van, gmtBroth=2019-11-02T19:51:11.985, balance=100)</span><br><span class="line">19:51:12.096 [main] INFO cn.van.parameter.bean.copy.demo.BeanCopierDemo - 拷贝后：userDomain:UserDomain(id=1, userName=Van, gmtBroth=2019-11-02 19:51:11, balance=100)</span><br></pre></td></tr></table></figure>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">...... 拷贝前：userDO:UserDO(id=1, userName=Van, gmtBroth=2019-11-02T19:51:11.985, balance=100)</span><br><span class="line">...... 拷贝后：userDomain:UserDomain(id=1, userName=Van, gmtBroth=2019-11-02 19:51:11, balance=100)</span><br></pre></td></tr></table></figure>
 
-<h4 id="3-2-4-小节"><a href="#3-2-4-小节" class="headerlink" title="3.2.4 小节"></a>3.2.4 小节</h4><ol>
-<li>一旦使用<code>Converter</code>，<code>BeanCopier</code>只使用<code>Converter</code>定义的规则去拷贝属性，所以在<code>convert()</code>方法中要考虑所有的属性。</li>
-<li>但，使用<code>Converter</code>会使对象拷贝速度变慢。</li>
+<ul>
+<li>注意</li>
+</ul>
+<ol>
+<li>一旦使用<code>Converter</code>，<code>BeanCopier</code>只使用<code>Converter</code>定义的规则去拷贝属性，所以在<code>convert()</code>方法中要考虑所有的属性；</li>
+<li>毫无疑问，使用<code>Converter</code>会使对象拷贝速度变慢。</li>
 </ol>
-<h3 id="3-3-BeanCopier总结"><a href="#3-3-BeanCopier总结" class="headerlink" title="3.3 BeanCopier总结"></a>3.3 <code>BeanCopier</code>总结</h3><ol>
-<li>当源类和目标类的属性名称、类型都相同，拷贝没问题。</li>
-<li>当源对象和目标对象的属性名称相同、类型不同,那么名称相同而类型不同的属性不会被拷贝。注意，原始类型（<code>int</code>，<code>short</code>，<code>char</code>）和 他们的包装类型，在这里都被当成了不同类型，因此不会被拷贝。</li>
-<li>源类或目标类的<code>setter</code>比<code>getter</code>少，拷贝没问题，此时<code>setter</code>多余，但是不会报错。</li>
-<li>源类和目标类有相同的属性（两者的<code>getter</code>都存在），但是目标类的<code>setter</code>不存在，此时会抛出<code>NullPointerException</code>。</li>
+<h3 id="3-3-缓存BeanCopier实例提升性能"><a href="#3-3-缓存BeanCopier实例提升性能" class="headerlink" title="3.3 缓存BeanCopier实例提升性能"></a>3.3 缓存<code>BeanCopier</code>实例提升性能</h3><p><code>BeanCopier</code>拷贝速度快，性能瓶颈出现在创建<code>BeanCopier</code>实例的过程中。 所以，把创建过的<code>BeanCopier</code>实例放到缓存中，下次可以直接获取，提升性能。</p>
+<ul>
+<li>测试代码</li>
+</ul>
+<figure class="highlight"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">beanCopierWithCache</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    List&lt;UserDO&gt; userDOList = DataUtil.createDataList(<span class="number">10000</span>);</span><br><span class="line">    <span class="keyword">long</span> start = System.currentTimeMillis();</span><br><span class="line">    List&lt;UserDTO&gt; userDTOS = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">    userDOList.forEach(userDO -&gt; &#123;</span><br><span class="line">        UserDTO userDTO = <span class="keyword">new</span> UserDTO();</span><br><span class="line">        copy(userDO, userDTO);</span><br><span class="line">        userDTOS.add(userDTO);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 缓存 BeanCopier</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> ConcurrentHashMap&lt;String, BeanCopier&gt; BEAN_COPIERS = <span class="keyword">new</span> ConcurrentHashMap&lt;&gt;();</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">copy</span><span class="params">(Object srcObj, Object destObj)</span> </span>&#123;</span><br><span class="line">    String key = genKey(srcObj.getClass(), destObj.getClass());</span><br><span class="line">    BeanCopier copier = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (!BEAN_COPIERS.containsKey(key)) &#123;</span><br><span class="line">        copier = BeanCopier.create(srcObj.getClass(), destObj.getClass(), <span class="keyword">false</span>);</span><br><span class="line">        BEAN_COPIERS.put(key, copier);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        copier = BEAN_COPIERS.get(key);</span><br><span class="line">    &#125;</span><br><span class="line">    copier.copy(srcObj, destObj, <span class="keyword">null</span>);</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> String <span class="title">genKey</span><span class="params">(Class&lt;?&gt; srcClazz, Class&lt;?&gt; destClazz)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> srcClazz.getName() + destClazz.getName();</span><br><span class="line">&#125;</span><br><span class="line">```    </span><br><span class="line"></span><br><span class="line">### 3.3 `BeanCopier`总结</span><br><span class="line"></span><br><span class="line"><span class="number">1</span>. 当源类和目标类的属性名称、类型都相同，拷贝没问题。</span><br><span class="line"><span class="number">2</span>. 当源对象和目标对象的属性名称相同、类型不同,那么名称相同而类型不同的属性不会被拷贝。注意，原始类型（`<span class="keyword">int</span>`，`<span class="keyword">short</span>`，`<span class="keyword">char</span>`）和 他们的包装类型，在这里都被当成了不同类型，因此不会被拷贝。</span><br><span class="line"><span class="number">3</span>. 源类或目标类的`setter`比`getter`少，拷贝没问题，此时`setter`多余，但是不会报错。</span><br><span class="line"><span class="number">4</span>. 源类和目标类有相同的属性（两者的`getter`都存在），但是目标类的`setter`不存在，此时会抛出`NullPointerException`。</span><br><span class="line"><span class="number">5</span>. 加缓存可以提升拷贝速度。</span><br><span class="line"></span><br><span class="line">### 3.4 示例代码</span><br><span class="line"></span><br><span class="line"><span class="number">1</span>. [该部分测试代码](https:<span class="comment">//github.com/vanDusty/Spring-Home/blob/master/spring-case/bean-copy/src/test/java/cn/van/spring/copy/beancopier/BeanCopierTest.java)</span></span><br><span class="line"><span class="number">1</span>. [完整代码地址](https:<span class="comment">//github.com/vanDusty/Spring-Home/tree/master/spring-case/bean-copy/src/main/java/cn/van/spring/copy/beancopier)</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">## 四、`Orika`</span><br><span class="line"></span><br><span class="line">`Orika` 是 `Java Bean` 映射框架，可以实现从一个对象递归拷贝数据至另一个对象。它的优点是：**名字相同类型不同**也能直接复制。</span><br><span class="line"></span><br><span class="line">### 4.1 所需依赖</span><br><span class="line"></span><br><span class="line">```xml</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;ma.glasnost.orika&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;orika-core&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;1.5.4&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-映射工具类"><a href="#4-2-映射工具类" class="headerlink" title="4.2 映射工具类"></a>4.2 映射工具类</h3><p>使用枚举实现的单例模式创建一个映射工具类，便于测试。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> MapperUtils &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 实例</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    INSTANCE;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 默认字段工厂</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> MapperFactory MAPPER_FACTORY = <span class="keyword">new</span> DefaultMapperFactory.Builder().build();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 默认字段实例</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> MapperFacade MAPPER_FACADE = MAPPER_FACTORY.getMapperFacade();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 默认字段实例集合</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Map&lt;String, MapperFacade&gt; CACHE_MAPPER_FACADE_MAP = <span class="keyword">new</span> ConcurrentHashMap&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 映射实体（默认字段）</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> toClass 映射类对象</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> data    数据（对象）</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 映射类对象</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> &lt;E, T&gt; <span class="function">E <span class="title">map</span><span class="params">(Class&lt;E&gt; toClass, T data)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> MAPPER_FACADE.map(data, toClass);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 映射实体（自定义配置）</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> toClass   映射类对象</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> data      数据（对象）</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> configMap 自定义配置</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 映射类对象</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> &lt;E, T&gt; <span class="function">E <span class="title">map</span><span class="params">(Class&lt;E&gt; toClass, T data, Map&lt;String, String&gt; configMap)</span> </span>&#123;</span><br><span class="line">        MapperFacade mapperFacade = <span class="keyword">this</span>.getMapperFacade(toClass, data.getClass(), configMap);</span><br><span class="line">        <span class="keyword">return</span> mapperFacade.map(data, toClass);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 映射集合（默认字段）</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> toClass 映射类对象</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> data    数据（集合）</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 映射类对象</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> &lt;E, T&gt; <span class="function">List&lt;E&gt; <span class="title">mapAsList</span><span class="params">(Class&lt;E&gt; toClass, Collection&lt;T&gt; data)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> MAPPER_FACADE.mapAsList(data, toClass);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 映射集合（自定义配置）</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> toClass   映射类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> data      数据（集合）</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> configMap 自定义配置</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 映射类对象</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> &lt;E, T&gt; <span class="function">List&lt;E&gt; <span class="title">mapAsList</span><span class="params">(Class&lt;E&gt; toClass, Collection&lt;T&gt; data, Map&lt;String, String&gt; configMap)</span> </span>&#123;</span><br><span class="line">        T t = data.stream().findFirst().orElseThrow(() -&gt; <span class="keyword">new</span> ExceptionInInitializerError(<span class="string">"映射集合，数据集合为空"</span>));</span><br><span class="line">        MapperFacade mapperFacade = <span class="keyword">this</span>.getMapperFacade(toClass, t.getClass(), configMap);</span><br><span class="line">        <span class="keyword">return</span> mapperFacade.mapAsList(data, toClass);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取自定义映射</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> toClass   映射类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> dataClass 数据映射类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> configMap 自定义配置</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 映射类对象</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> &lt;E, T&gt; <span class="function">MapperFacade <span class="title">getMapperFacade</span><span class="params">(Class&lt;E&gt; toClass, Class&lt;T&gt; dataClass, Map&lt;String, String&gt; configMap)</span> </span>&#123;</span><br><span class="line">        String mapKey = dataClass.getCanonicalName() + <span class="string">"_"</span> + toClass.getCanonicalName();</span><br><span class="line">        MapperFacade mapperFacade = CACHE_MAPPER_FACADE_MAP.get(mapKey);</span><br><span class="line">        <span class="keyword">if</span> (Objects.isNull(mapperFacade)) &#123;</span><br><span class="line">            MapperFactory factory = <span class="keyword">new</span> DefaultMapperFactory.Builder().build();</span><br><span class="line">            ClassMapBuilder classMapBuilder = factory.classMap(dataClass, toClass);</span><br><span class="line">            configMap.forEach(classMapBuilder::field);</span><br><span class="line">            classMapBuilder.byDefault().register();</span><br><span class="line">            mapperFacade = factory.getMapperFacade();</span><br><span class="line">            CACHE_MAPPER_FACADE_MAP.put(mapKey, mapperFacade);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> mapperFacade;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>这个工具类中主要有四个方法：</li>
+</ul>
+<ol>
+<li><p><code>map(Class toClass, T data)</code>：普通的映射实体，主要映射名称相同（类型可以不同）的字段；</p>
+</li>
+<li><p><code>map(Class toClass, T data, Map&lt;String, String&gt; configMap)</code>：自定义配置的映射，映射名称不同时，自定义映射对应名称；</p>
+</li>
+<li><p><code>mapAsList(Class toClass, Collection data)</code>：普通的集合的映射；</p>
+</li>
+<li><p><code>mapAsList(Class toClass, Collection data, Map&lt;String, String&gt; configMap)</code>：自定义的集合映射，自定义映射对应名称。</p>
+</li>
 </ol>
-<h2 id="四、BeanUtils与BeanCopier速度对比"><a href="#四、BeanUtils与BeanCopier速度对比" class="headerlink" title="四、BeanUtils与BeanCopier速度对比"></a>四、BeanUtils与BeanCopier速度对比</h2><blockquote>
-<p>废话不多说，我这里直接演示两种工具<code>10000</code>条数据拷贝的耗时对比</p>
+<h3 id="4-3-简单测试"><a href="#4-3-简单测试" class="headerlink" title="4.3 简单测试"></a>4.3 简单测试</h3><ul>
+<li>拷贝名称相同类型可不同的属性</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">normalCopy</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 模拟查询出数据</span></span><br><span class="line">    UserDO userDO = DataUtil.createData();</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">    <span class="comment">// 第一个参数：源对象， 第二个参数：目标对象，第三个参数：是否使用自定义转换器（下面会介绍），下同</span></span><br><span class="line">    UserDTO userDTO = MapperUtils.INSTANCE.map(UserDTO<span class="class">.<span class="keyword">class</span>, <span class="title">userDO</span>)</span>;;</span><br><span class="line">    log.info(<span class="string">"拷贝后：userDTO:&#123;&#125;"</span>, userDTO);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>字段名称不同，带翻译</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">converterTest</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 模拟查询出数据</span></span><br><span class="line">    UserDO userDO = DataUtil.createData();</span><br><span class="line">    Map&lt;String, String&gt; config = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">    <span class="comment">// 自定义配置(balance 转 balances)</span></span><br><span class="line">    config.put(<span class="string">"balance"</span>, <span class="string">"balances"</span>);</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">    UserDomain userDomain = MapperUtils.INSTANCE.map(UserDomain<span class="class">.<span class="keyword">class</span>, <span class="title">userDO</span>, <span class="title">config</span>)</span>;</span><br><span class="line">    log.info(<span class="string">"拷贝后：userDomain:&#123;&#125;"</span>, userDomain);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>拷贝集合</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">beanCopierWithCache</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;UserDO&gt; userDOList = DataUtil.createDataList(<span class="number">3</span>);</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDOList:&#123;&#125;"</span>, userDOList);</span><br><span class="line">    List&lt;UserDTO&gt; userDTOS = MapperUtils.INSTANCE.mapAsList(UserDTO<span class="class">.<span class="keyword">class</span>,<span class="title">userDOList</span>)</span>;</span><br><span class="line">    log.info(<span class="string">"拷贝后：userDTOS:&#123;&#125;"</span>, userDTOS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、MapStruct"><a href="#五、MapStruct" class="headerlink" title="五、MapStruct"></a>五、<code>MapStruct</code></h2><p><code>MapStruct</code> 是一个自动生成 <code>bean</code> 映射类的<strong>代码生成器</strong>。<code>MapStruct</code> 还能够在不同的数据类型之间进行转换。</p>
+<h3 id="5-1-所需依赖"><a href="#5-1-所需依赖" class="headerlink" title="5.1 所需依赖"></a>5.1 所需依赖</h3><ul>
+<li><code>mapstruct-jdk8</code></li>
+</ul>
+<blockquote>
+<p>包含所需的注释，例如<code>@Mapping</code>。</p>
 </blockquote>
-<h3 id="4-1-BeanUtils"><a href="#4-1-BeanUtils" class="headerlink" title="4.1 BeanUtils"></a>4.1 <code>BeanUtils</code></h3><ul>
-<li>测试代码</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">beanUtil</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;UserDO&gt; list = DataUtil.createDataList(<span class="number">10000</span>);</span><br><span class="line">    <span class="keyword">long</span> start = System.currentTimeMillis();</span><br><span class="line">    List&lt;UserDTO&gt; dtoList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">    list.forEach(userDO -&gt; &#123;</span><br><span class="line">        UserDTO userDTO = <span class="keyword">new</span> UserDTO();</span><br><span class="line">        BeanUtils.copyProperties(userDO,userDTO);</span><br><span class="line">        dtoList.add(userDTO);</span><br><span class="line">    &#125;);</span><br><span class="line">    log.info(<span class="string">"BeanUtils cotTime: &#123;&#125;ms"</span>, System.currentTimeMillis() - start);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.mapstruct<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>mapstruct-jdk8<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.3.0.Final<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
 
 <ul>
-<li>结果(耗时：<code>232ms</code>)</li>
+<li><code>mapstruct-processor</code></li>
 </ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">20:14:24.380 [main] INFO cn.van.parameter.bean.copy.demo.BeanCopyComparedDemo - BeanUtils cotTime: 232ms</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>在编译，生成映射器实现的注释处理器。</p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.mapstruct<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>mapstruct-processor<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.3.0.Final<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">scope</span>&gt;</span>provided<span class="tag">&lt;/<span class="name">scope</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
 
-<h3 id="4-2-BeanCopier"><a href="#4-2-BeanCopier" class="headerlink" title="4.2 BeanCopier"></a>4.2 <code>BeanCopier</code></h3><ul>
-<li>测试代码</li>
+<h3 id="5-2-如何使用？"><a href="#5-2-如何使用？" class="headerlink" title="5.2 如何使用？"></a>5.2 如何使用？</h3><p>您所要做的就是定义一个<code>mapper</code>接口，该接口声明任何所需的映射方法。在编译期间，<code>MapStruct</code>将生成此接口的实现。此实现使用普通的<code>Java</code>方法调用来在源对象和目标对象之间进行映射。</p>
+<ul>
+<li>创建<code>Mapper</code></li>
 </ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">beanCopier</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 工具类生成10w条数据</span></span><br><span class="line">    List&lt;UserDO&gt; doList = DataUtil.createDataList(<span class="number">10000</span>);</span><br><span class="line">    <span class="keyword">long</span> start = System.currentTimeMillis();</span><br><span class="line">    List&lt;UserDTO&gt; dtoList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">    doList.forEach(userDO -&gt; &#123;</span><br><span class="line">        BeanCopier b = BeanCopier.create(UserDO<span class="class">.<span class="keyword">class</span>, <span class="title">UserDTO</span>.<span class="title">class</span>, <span class="title">false</span>)</span>;</span><br><span class="line">        UserDTO userDTO = <span class="keyword">new</span> UserDTO();</span><br><span class="line">        b.copy(userDO, userDTO, <span class="keyword">null</span>);</span><br><span class="line">        dtoList.add(userDTO);</span><br><span class="line">    &#125;);</span><br><span class="line">    log.info(<span class="string">"BeanCopier costTime: &#123;&#125;ms"</span>, System.currentTimeMillis() - start);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>利用<code>@Mapper</code>注解标注该接口/抽象类是被<code>MapStruct</code>自动映射的，只有存在该注解才会将内部的接口方法自动实现。</p>
+<ul>
+<li>获取<code>Mapper</code></li>
+</ul>
+<p><code>MapStruct</code>为我们提供了多种的获取<code>Mapper</code>的方式，习惯用默认配置：采用<code>Mappers</code>通过动态工厂内部反射机制完成<code>Mapper</code>实现类的获取。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">UserConvertUtils INSTANCE = Mappers.getMapper(UserConvertUtils<span class="class">.<span class="keyword">class</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>完整的一个转换器<code>demo</code>:</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Mapper</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">UserConvertUtils</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    UserConvertUtils INSTANCE = Mappers.getMapper(UserConvertUtils<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 普通的映射</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> userDO UserDO数据持久层类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 数据传输类</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">UserDTO <span class="title">doToDTO</span><span class="params">(UserDO userDO)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 类型转换的映射</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> userDO UserDO数据持久层类</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 数据传输类</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Mappings</span>(&#123;</span><br><span class="line">            <span class="meta">@Mapping</span>(target = <span class="string">"gmtBroth"</span>, source = <span class="string">"gmtBroth"</span>, dateFormat = <span class="string">"yyyy-MM-dd HH:mm:ss"</span>),</span><br><span class="line">            <span class="meta">@Mapping</span>(target = <span class="string">"balances"</span>, source = <span class="string">"balance"</span>),</span><br><span class="line">    &#125;)</span><br><span class="line">    <span class="function">UserDTO <span class="title">doToDtoWithConvert</span><span class="params">(UserDO userDO)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <ul>
-<li>结果(耗时：<code>116ms</code>)</li>
+<li>测试</li>
 </ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">20:15:24.380 [main] INFO cn.van.parameter.bean.copy.demo.BeanCopyComparedDemo - BeanCopier costTime: 116ms</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 一般拷贝</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">normalCopy</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 模拟查询出数据</span></span><br><span class="line">    UserDO userDO = DataUtil.createData();</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">    UserDTO userDTO = UserConvertUtils.INSTANCE.doToDTO(userDO);</span><br><span class="line">    log.info(<span class="string">"拷贝后：userDTO:&#123;&#125;"</span>, userDTO);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 包含类型转换的拷贝</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doToDtoWithConvert</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 模拟查询出数据</span></span><br><span class="line">    UserDO userDO = DataUtil.createData();</span><br><span class="line">    log.info(<span class="string">"拷贝前：userDO:&#123;&#125;"</span>, userDO);</span><br><span class="line">    UserDTO userDTO = UserConvertUtils.INSTANCE.doToDtoWithConvert(userDO);</span><br><span class="line">    log.info(<span class="string">"拷贝后：userDTO:&#123;&#125;"</span>, userDTO);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h3 id="4-3-缓存BeanCopier实例提升性能"><a href="#4-3-缓存BeanCopier实例提升性能" class="headerlink" title="4.3 缓存BeanCopier实例提升性能"></a>4.3 缓存<code>BeanCopier</code>实例提升性能</h3><p><code>BeanCopier</code>拷贝速度快，性能瓶颈出现在创建<code>BeanCopier</code>实例的过程中。 所以，把创建过的<code>BeanCopier</code>实例放到缓存中，下次可以直接获取，提升性能。</p>
 <ul>
-<li>测试代码</li>
+<li>打印映射结果</li>
 </ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">beanCopierWithCache</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    List&lt;UserDO&gt; userDOList = DataUtil.createDataList(<span class="number">10000</span>);</span><br><span class="line">    <span class="keyword">long</span> start = System.currentTimeMillis();</span><br><span class="line">    List&lt;UserDTO&gt; userDTOS = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">    userDOList.forEach(userDO -&gt; &#123;</span><br><span class="line">        UserDTO userDTO = <span class="keyword">new</span> UserDTO();</span><br><span class="line">        copy(userDO, userDTO);</span><br><span class="line">        userDTOS.add(userDTO);</span><br><span class="line">    &#125;);</span><br><span class="line">    log.info(<span class="string">"BeanCopier 加缓存后 costTime: &#123;&#125;ms"</span>, System.currentTimeMillis() - start);</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">copy</span><span class="params">(Object srcObj, Object destObj)</span> </span>&#123;</span><br><span class="line">    String key = genKey(srcObj.getClass(), destObj.getClass());</span><br><span class="line">    BeanCopier copier = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (!BEAN_COPIERS.containsKey(key)) &#123;</span><br><span class="line">        copier = BeanCopier.create(srcObj.getClass(), destObj.getClass(), <span class="keyword">false</span>);</span><br><span class="line">        BEAN_COPIERS.put(key, copier);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        copier = BEAN_COPIERS.get(key);</span><br><span class="line">    &#125;</span><br><span class="line">    copier.copy(srcObj, destObj, <span class="keyword">null</span>);</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> String <span class="title">genKey</span><span class="params">(Class&lt;?&gt; srcClazz, Class&lt;?&gt; destClazz)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> srcClazz.getName() + destClazz.getName();</span><br><span class="line">&#125;</span><br><span class="line">```    </span><br><span class="line"></span><br><span class="line">- 结果(耗时：`<span class="number">6</span>ms`)</span><br><span class="line"></span><br><span class="line">```xml</span><br><span class="line"><span class="number">20</span>:<span class="number">32</span>:<span class="number">31.405</span> [main] INFO cn.van.parameter.bean.copy.demo.BeanCopyComparedDemo - BeanCopier 加缓存后 costTime: <span class="number">6</span>ms</span><br></pre></td></tr></table></figure>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">一般拷贝:</span><br><span class="line">...拷贝前：userDO:UserDO(id=1, userName=Van, gmtBroth=2020-04-21T21:38:39.376, balance=100)</span><br><span class="line">...拷贝后：userDTO:UserDTO(id=1, userName=Van, gmtBroth=2020-04-21T21:38:39.376, balances=null)</span><br><span class="line">包含类型转换的拷贝:</span><br><span class="line">...拷贝前：userDO:UserDO(id=1, userName=Van, gmtBroth=2020-04-21T21:05:19.282, balance=100)</span><br><span class="line">...拷贝后：userDTO:UserDTO(id=1, userName=Van, gmtBroth=2020-04-21 21:05:19, balances=100)</span><br></pre></td></tr></table></figure>
 
-<h2 id="五、总结及源码"><a href="#五、总结及源码" class="headerlink" title="五、总结及源码"></a>五、总结及源码</h2><table>
-<thead>
-<tr>
-<th>场景</th>
-<th>耗时（10000次调用）</th>
-<th>原理</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>BeanUtils</td>
-<td>232ms</td>
-<td>反射</td>
-</tr>
-<tr>
-<td>BeanCopier</td>
-<td>116ms</td>
-<td>修改字节码</td>
-</tr>
-<tr>
-<td>BeanCopier(加缓存)</td>
-<td>6ms</td>
-<td>修改字节码</td>
-</tr>
-</tbody></table>
-<p><a href="https://github.com/vanDusty/SpringBoot-Home/tree/master/springboot-demo-parameter/bean-copy-demo" target="_blank" rel="noopener">Github 示例代码</a></p>
-<p>推荐：<a href="https://www.jianshu.com/p/f8b892e08d26" target="_blank" rel="noopener">BeanCopier 源码分析</a></p>
+<blockquote>
+<p>通过打印结果可以发现：相较于前者，包含类型转换的拷贝可以自定义转换属性和时间格式等。</p>
+</blockquote>
+<h3 id="5-3-MapStruct-注解的关键词"><a href="#5-3-MapStruct-注解的关键词" class="headerlink" title="5.3 MapStruct 注解的关键词"></a>5.3 <code>MapStruct</code> 注解的关键词</h3><ol>
+<li><code>@Mapper</code>：只有在接口加上这个注解， <code>MapStruct</code> 才会去实现该接口；</li>
+<li><code>@Mappings</code>：配置多个<code>@Mapping</code>；</li>
+<li><code>@Mapping</code>：属性映射，若源对象属性与目标对象名字一致，会自动映射对应属性：</li>
+</ol>
+<blockquote>
+</blockquote>
+<ol>
+<li><code>source</code>：源属性；</li>
+<li><code>target</code>：目标属性；</li>
+<li><code>dateFormat</code>：字符串与日期之间相互转换；</li>
+<li><code>ignore</code>: 忽略这个，某个属性不想映射，可以加个 <code>ignore=true</code>；</li>
+</ol>
+<h3 id="5-4-多对一"><a href="#5-4-多对一" class="headerlink" title="5.4 多对一"></a>5.4 多对一</h3><p><code>MapStruct</code> 可以将几种类型的对象映射为另外一种类型，比如将多个 <code>DO</code> 对象转换为 <code>DTO</code>。</p>
+<p>详见：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function">UserDTO <span class="title">doAndInfoToDto</span><span class="params">(UserDO userDO, UserInfoDO userInfoDO)</span></span>;</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="5-5-为什么要用-MapStruct"><a href="#5-5-为什么要用-MapStruct" class="headerlink" title="5.5 为什么要用 MapStruct"></a>5.5 为什么要用 <code>MapStruct</code></h3><p>与手工编写映射代码相比，<code>MapStruct</code>通过生成繁琐且易于编写的代码来节省时间。遵循约定优于配置方法，<code>MapStruct</code>使用合理的默认值，但在配置或实现特殊行为时会采取措施。</p>
+<p>与动态映射框架相比，<code>MapStruct</code>具有以下优势：</p>
+<ol>
+<li>通过使用普通方法调用而不是反射来快速执行</li>
+<li>编译时类型安全：只能映射相互映射的对象和属性，不会将订单实体意外映射到客户<code>DTO</code>等。</li>
+<li>在构建时清除错误报告，如果映射不完整（并非所有目标属性都已映射）映射不正确（找不到合适的映射方法或类型转换）</li>
+</ol>
+<h3 id="5-6-示例代码"><a href="#5-6-示例代码" class="headerlink" title="5.6 示例代码"></a>5.6 示例代码</h3><ol>
+<li><a href="https://github.com/vanDusty/Spring-Home/blob/master/spring-case/bean-copy/src/test/java/cn/van/spring/copy/mapstruct/MapStructTest.java" target="_blank" rel="noopener">该部分测试代码</a></li>
+<li><a href="https://github.com/vanDusty/Spring-Home/tree/master/spring-case/bean-copy/src/main/java/cn/van/spring/copy/mapstruct" target="_blank" rel="noopener">完整代码地址</a></li>
+</ol>
+<h2 id="六、更多"><a href="#六、更多" class="headerlink" title="六、更多"></a>六、更多</h2><p>通过四种属性拷贝的方式，加上自己手动<code>get/set</code>，仅给出以下建议：</p>
+<ol>
+<li>简单拷贝直接使用<code>get/set</code>；</li>
+<li>属性值过多的拷贝且已经使用<code>Spring</code>的情况下，使用<code>BeanUtils</code>;</li>
+<li>属性拷贝比较麻烦，存在转译且对拷贝速度有要求时使用<code>MapStruct</code>(性能几乎等同于直接<code>get/set</code>)。</li>
+</ol>
+<p>具体性能，参考文章：<a href="https://juejin.im/post/5c9d5cd1e51d455788281089" target="_blank" rel="noopener">Java Bean Copy 性能大比拼</a></p>
+<p><a href="https://github.com/vanDusty/Spring-Home/tree/master/spring-case/bean-copy" target="_blank" rel="noopener">该模块完整 Github 示例源码</a></p>
 ]]></content>
       <categories>
-        <category>BeanCopy</category>
+        <category>Spring</category>
       </categories>
       <tags>
         <tag>Spring</tag>
-        <tag>BeanCopy</tag>
+        <tag>Bean</tag>
       </tags>
   </entry>
   <entry>
