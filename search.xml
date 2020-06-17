@@ -1156,9 +1156,9 @@
         <category>设计模式</category>
       </categories>
       <tags>
-        <tag>策略模式</tag>
-        <tag>工厂模式</tag>
         <tag>if else</tag>
+        <tag>工厂模式</tag>
+        <tag>策略模式</tag>
       </tags>
   </entry>
   <entry>
@@ -3227,8 +3227,8 @@
         <category>代码设计</category>
       </categories>
       <tags>
-        <tag>if else</tag>
         <tag>validator</tag>
+        <tag>if else</tag>
       </tags>
   </entry>
   <entry>
