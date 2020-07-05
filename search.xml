@@ -645,7 +645,8 @@
   <entry>
     <title>【JUC 并发】锁分类介绍</title>
     <url>/2020/02/05/c9de5b2f.html</url>
-    <content><![CDATA[<a id="more"></a>
+    <content><![CDATA[<p>从<strong>宏观上来分类</strong>，锁可以分为乐观锁与悲观锁。注意，这里说的的锁可以是数据库中的锁，也可以是 <code>Java</code>、<code>Python</code> 等开发语言中的锁技术。</p>
+<a id="more"></a>
 
 <h2 id="一、乐观锁与悲观锁"><a href="#一、乐观锁与悲观锁" class="headerlink" title="一、乐观锁与悲观锁"></a>一、乐观锁与悲观锁</h2><p>从<strong>宏观上来分类</strong>，锁可以分为乐观锁与悲观锁。注意，这里说的的锁可以是数据库中的锁，也可以是 <code>Java</code>、<code>Python</code> 等开发语言中的锁技术。</p>
 <h3 id="1-1-悲观锁"><a href="#1-1-悲观锁" class="headerlink" title="1.1 悲观锁"></a>1.1 悲观锁</h3><p>悲观锁是一种悲观思想，即认为写多，遇到并发写的可能性高。悲观锁在持有数据的时候总会把<strong>资源</strong>或者<strong>数据</strong>锁住，这样其他线程想要请求这个资源的时候就会阻塞，直到等到悲观锁把资源释放为止。</p>
@@ -1321,11 +1322,14 @@
 <h2 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h2><p>这里仅作简单展示，如需探究更多使用方法，可以直接定义<code>getApplicationContext()</code>方法，将<code>ApplicationContext</code>返回，具体详见文末工具类中代码。</p>
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">getApplicationContext</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ApplicationContext context = SpringUtils.getApplicationContext();</span><br><span class="line">    log.info(<span class="string">"context.containsBean():&#123;&#125;"</span>, context.containsBean(<span class="string">"springBean"</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p><a href="https://github.com/vanDusty/Spring-Home/tree/master/spring-case/spring-demo" target="_blank" rel="noopener">Github 示例代码</a></p>
+<p><a href="https://github.com/vanDusty/Frame-Home/tree/master/spring-case/spring-demo" target="_blank" rel="noopener">Github 示例代码</a></p>
 <ol>
-<li><a href="https://github.com/vanDusty/Spring-Home/blob/master/spring-case/spring-demo/src/main/java/cn/van/spring/demo/util/SpringUtils.java" target="_blank" rel="noopener">SpringUtils.java</a></li>
-<li><a href="https://github.com/vanDusty/Spring-Home/blob/master/spring-case/spring-demo/src/test/java/cn/van/spring/demo/SpringUtilsTest.java" target="_blank" rel="noopener">SpringUtilsTest.java</a></li>
+<li><a href="https://github.com/vanDusty/Frame-Home/blob/master/spring-case/spring-demo/src/main/java/cn/van/spring/demo/util/SpringUtils.java" target="_blank" rel="noopener">SpringUtils.java</a></li>
+<li><a href="https://github.com/vanDusty/Frame-Home/blob/master/spring-case/spring-demo/src/test/java/cn/van/spring/demo/SpringUtilsTest.java" target="_blank" rel="noopener">SpringUtilsTest.java</a></li>
 </ol>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
 ]]></content>
       <categories>
         <category>Spring</category>
@@ -1730,7 +1734,10 @@
 </li>
 </ul>
 <h2 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h2><p>使用<code>Spring</code>提供的这个监视器，不仅可以省略大量的<code>System.currentTimeMillis()</code>及运算，而且它提供的<code>prettyPrint()</code>打印在日志里进行分析可以非常的直观。</p>
-<p><a href="https://github.com/vanDusty/Spring-Home/blob/master/spring-case/spring-demo/src/test/java/cn/van/spring/demo/StopWatchTest.java" target="_blank" rel="noopener">Github 示例代码</a></p>
+<p><a href="https://github.com/vanDusty/Frame-Home/blob/master/spring-case/spring-demo/src/test/java/cn/van/spring/demo/StopWatchTest.java" target="_blank" rel="noopener">Github 示例代码</a></p>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
 ]]></content>
       <categories>
         <category>Spring</category>
@@ -2023,9 +2030,12 @@
 <p>通过日志分析，发现普通的<code>SELECT * FROM user_info_pageable</code> 被重新组装成<code>SELECT * FROM user_info_pageable limit 4</code>,说明拦截器实现的分页成功。</p>
 <h2 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h2><p>两种方式：<code>Pagehelper</code> 分页和自己实现，根据实际情况自己选用吧。</p>
 <ol>
-<li><a href="https://github.com/vanDusty/Mybatis-Home/tree/master/mybatis-case/mybatis-pagehelper" target="_blank" rel="noopener"><code>Pagehelper</code> 分页示例代码</a></li>
-<li><a href="https://github.com/vanDusty/Mybatis-Home/tree/master/mybatis-case/mybatis-pageable" target="_blank" rel="noopener"><code>Mybatis</code> 拦截器实现分页示例代码</a></li>
+<li><a href="https://github.com/vanDusty/Frame-Home/tree/master/mybatis-case/mybatis-pagehelper" target="_blank" rel="noopener"><code>Pagehelper</code> 分页示例代码</a></li>
+<li><a href="https://github.com/vanDusty/Frame-Home/tree/master/mybatis-case/mybatis-pageable" target="_blank" rel="noopener"><code>Mybatis</code> 拦截器实现分页示例代码</a></li>
 </ol>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
 ]]></content>
       <categories>
         <category>Mybatis</category>
@@ -2670,7 +2680,10 @@
 <li>属性拷贝比较麻烦，存在转译且对拷贝速度有要求时使用<code>MapStruct</code>(性能几乎等同于直接<code>get/set</code>)。</li>
 </ol>
 <p>具体性能，参考文章：<a href="https://juejin.im/post/5c9d5cd1e51d455788281089" target="_blank" rel="noopener">Java Bean Copy 性能大比拼</a></p>
-<p><a href="https://github.com/vanDusty/Spring-Home/tree/master/spring-case/bean-copy" target="_blank" rel="noopener">该模块完整 Github 示例源码</a></p>
+<p><a href="https://github.com/vanDusty/Frame-Home/tree/master/spring-case/bean-copy" target="_blank" rel="noopener">该模块完整 Github 示例源码</a></p>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
 ]]></content>
       <categories>
         <category>Spring</category>
@@ -4345,7 +4358,10 @@
 
 
 <h2 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h2><p>相较于另一篇文章，该方式虽然配置麻烦，但是如果新增数据源，配置更简单。文中代码不全，文章代码，详见</p>
-<p><a href="https://github.com/vanDusty/Mybatis-Home/tree/master/mybatis-case/multipledata-demo" target="_blank" rel="noopener">Github 示例代码</a></p>
+<p><a href="https://github.com/vanDusty/Frame-Home/tree/master/mybatis-case/multipledata-demo" target="_blank" rel="noopener">Github 示例代码</a></p>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
 ]]></content>
       <categories>
         <category>Mybatis</category>
@@ -4756,7 +4772,10 @@ public String sendSms(SmsParams smsParams) {
 <li>推荐使用<code>CONCAT（）</code>函数或者 <code>bind</code> 的方式；</li>
 <li>注意关键词中有<code>%</code>、<code>_</code>这些特殊字符如何处理。</li>
 </ol>
-<p><a href="https://github.com/vanDusty/mybatis-Home/blob/master/mybatis-case/mybatis-demo/src/test/java/cn/van/mybatis/demo/like/MybatisLikeTest.java" target="_blank" rel="noopener">Github 示例代码</a></p>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
+<p><a href="https://github.com/vanDusty/Frame-Home/blob/master/mybatis-case/mybatis-demo/src/test/java/cn/van/mybatis/demo/like/MybatisLikeTest.java" target="_blank" rel="noopener">Github 示例代码</a></p>
 ]]></content>
       <categories>
         <category>MyBatis</category>
@@ -4867,7 +4886,10 @@ public String sendSms(SmsParams smsParams) {
 <p>经过测试，分别在在 <code>master</code> 库和 <code>slave</code> 库新增了不同的数据，证明我们的多数据源生效。</p>
 </blockquote>
 <h2 id="四、总结"><a href="#四、总结" class="headerlink" title="四、总结"></a>四、总结</h2><p>如果你觉得：我只是想找一个简单的多数据支持而已，使用<code>AOP</code>配置多数据源有点小复杂，欢迎尝试该方式。</p>
-<p><a href="https://github.com/vanDusty/Mybatis-Home/tree/master/mybatis-case/multipledata-simple" target="_blank" rel="noopener">Github 示例源码</a></p>
+<p><a href="https://github.com/vanDusty/Frame-Home/tree/master/mybatis-case/multipledata-simple" target="_blank" rel="noopener">Github 示例源码</a></p>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
 <p>参考文章：<a href="http://www.ityouknow.com/springboot/2016/11/25/spring-boot-multi-mybatis.html" target="_blank" rel="noopener">Spring Boot(七)：Mybatis 多数据源最简解决方案</a></p>
 ]]></content>
       <categories>
@@ -4979,7 +5001,10 @@ public String sendSms(SmsParams smsParams) {
 <li>执行 <code>maven</code> 命令</li>
 </ul>
 <p><code>mvn mybatis-generator:generate</code></p>
-<h1 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h1><p><a href="https://github.com/vanDusty/Mybatis-Home/tree/master/mybatis-case/mybatis-generator" target="_blank" rel="noopener">Github 示例代码</a></p>
+<h1 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h1><p><a href="https://github.com/vanDusty/Frame-Home/tree/master/mybatis-case/mybatis-generator" target="_blank" rel="noopener">Github 示例代码</a></p>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
 <p>参考文章：<a href="https://www.cnblogs.com/throwable/p/12046848.html" target="_blank" rel="noopener">Mybatis代码生成器Mybatis-Generator使用详解</a></p>
 ]]></content>
       <categories>
@@ -5080,7 +5105,10 @@ public String sendSms(SmsParams smsParams) {
 <p>请求两个接口，如果配置没错，这里应该可以请求到数据。</p>
 <h3 id="3-2-查看-Druid-监控"><a href="#3-2-查看-Druid-监控" class="headerlink" title="3.2 查看 Druid 监控"></a>3.2 查看 <code>Druid</code> 监控</h3><p>访问<a href="http://localhost:8082/druid/login.html" target="_blank" rel="noopener">http://localhost:8082/druid/login.html</a></p>
 <p>输入设置的用户名和密码即可访问<code>Druid</code>面板，里面有啥功能，自己去看吧。</p>
-<h2 id="四、总结"><a href="#四、总结" class="headerlink" title="四、总结"></a>四、总结</h2><p><a href="https://github.com/vanDusty/mybatis-Home/tree/master/mybatis-case/mybatis-druid" target="_blank" rel="noopener">Github 完整示例</a></p>
+<h2 id="四、总结"><a href="#四、总结" class="headerlink" title="四、总结"></a>四、总结</h2><p><a href="https://github.com/vanDusty/Frame-Home/tree/master/mybatis-case/mybatis-druid" target="_blank" rel="noopener">Github 完整示例</a></p>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
 <p>参考文章：<a href="https://github.com/alibaba/druid/wiki/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98" target="_blank" rel="noopener">Druid 问题文档</a></p>
 ]]></content>
       <categories>

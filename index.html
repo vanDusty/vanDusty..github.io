@@ -719,7 +719,7 @@
                 <i class="fa fa-file-word-o"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>2.5k</span>
+              <span>2.6k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
@@ -738,135 +738,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <a id="more"></a>
-
-<h2 id="一、乐观锁与悲观锁"><a href="#一、乐观锁与悲观锁" class="headerlink" title="一、乐观锁与悲观锁"></a>一、乐观锁与悲观锁</h2><p>从<strong>宏观上来分类</strong>，锁可以分为乐观锁与悲观锁。注意，这里说的的锁可以是数据库中的锁，也可以是 <code>Java</code>、<code>Python</code> 等开发语言中的锁技术。</p>
-<h3 id="1-1-悲观锁"><a href="#1-1-悲观锁" class="headerlink" title="1.1 悲观锁"></a>1.1 悲观锁</h3><p>悲观锁是一种悲观思想，即认为写多，遇到并发写的可能性高。悲观锁在持有数据的时候总会把<strong>资源</strong>或者<strong>数据</strong>锁住，这样其他线程想要请求这个资源的时候就会阻塞，直到等到悲观锁把资源释放为止。</p>
-<blockquote>
-<p>悲观锁的实现往往依靠数据库本身的锁功能实现。</p>
-</blockquote>
-<ul>
-<li><p>常见悲观锁</p>
-<ol>
-<li>传统的关系型数据库里边就用到了很多这种锁机制，比如<strong>行锁</strong>，<strong>表锁</strong>、<strong>读锁</strong>、<strong>写锁</strong>等，都是<strong>在做操作之前先上锁</strong>。</li>
-<li><code>Java</code> 中典型的悲观锁就是 <code>Synchronized</code>和 <code>ReentrantLock</code> 等独占锁(排他锁)。</li>
-</ol>
-</li>
-</ul>
-<h3 id="1-2-乐观锁"><a href="#1-2-乐观锁" class="headerlink" title="1.2 乐观锁"></a>1.2 乐观锁</h3><p>乐观锁是一种乐观思想，即认为读多写少，遇到并发写的可能性低。它总认为<strong>资源</strong>和<strong>数据</strong>不会被别人所修改，所以读取不会上锁。但是在进行写操作的时候会判断当前数据是否被修改过。</p>
-<blockquote>
-<p>乐观锁的实现方案一般来说有两种：版本号机制 和 <code>CAS</code> 实现 。</p>
-</blockquote>
-<ul>
-<li><p>常见乐观锁</p>
-<p>  数据库中的共享锁就是一种乐观锁。</p>
-</li>
-</ul>
-<p><strong>乐观锁和悲观锁并不是一种真实存在的锁，而是一种设计思想。</strong></p>
-<h3 id="1-3-乐观锁的实现方式"><a href="#1-3-乐观锁的实现方式" class="headerlink" title="1.3 乐观锁的实现方式"></a>1.3 乐观锁的实现方式</h3><p>乐观锁一般有两种实现方式：采用<code>版本号机制</code> 和 <code>CAS（Compare-and-Swap）</code>算法实现。</p>
-<ul>
-<li>版本号机制</li>
-</ul>
-<p>版本号机制是在数据表中加上一个 <code>version</code> 字段来实现的，表示数据被修改的次数，当执行写操作并且写入成功后，<code>version = version + 1</code>，当线程 <code>A</code> 要更新数据时，在读取数据的同时也会读取 <code>version</code> 值，在提交更新时，若刚才读取到的 <code>version</code> 值为当前数据库中的 <code>version</code> 值相等时才更新，否则重试更新操作，直到更新成功。</p>
-<ul>
-<li><code>CAS</code> 算法</li>
-</ul>
-<p><code>CAS</code> 是一种的无锁算法，即在不使用锁的情况下实现多线程之间的变量同步，也就是在没有线程被阻塞的情况下实现变量的同步，所以也叫非阻塞同步（<code>Non-blocking Synchronization</code>)</p>
-<ul>
-<li><p><code>CAS</code> 中涉及三个要素：</p>
-<ul>
-<li>需要读写的内存值 <code>V</code></li>
-<li>进行比较的值 <code>A</code></li>
-<li>拟写入的新值 <code>B</code></li>
-</ul>
-</li>
-</ul>
-<p><strong>当且仅当</strong>预期值 <code>A</code> 和内存值 <code>V</code> 相同时，将内存值 <code>V</code> 修改为 <code>B</code>，否则什么都不做。</p>
-<h3 id="1-4-乐观锁的缺点"><a href="#1-4-乐观锁的缺点" class="headerlink" title="1.4 乐观锁的缺点"></a>1.4 乐观锁的缺点</h3><ul>
-<li><code>ABA</code> 问题</li>
-</ul>
-<p>该说的是，如果一个变量第一次读取的值是 <code>A</code>，准备好需要对 <code>A</code> 进行写操作的时候，发现值还是 <code>A</code>。那么这种情况下，能认为 <code>A</code> 的值没有被改变过吗？</p>
-<blockquote>
-<p>可以是由 <code>A -&gt; B -&gt; A</code> 的这种情况，但是它只相信它看到的，因为第一次读取的值和目前的值相等，所以它就觉得没有变过。</p>
-</blockquote>
-<ul>
-<li>循环开销大</li>
-</ul>
-<p>我们知道乐观锁在进行写操作的时候会判断是否能够写入成功，如果写入不成功将触发等待 -&gt; 重试机制，进行等待重试的锁，它不适用于长期获取不到锁的情况，而且，循环对于性能开销比较大。</p>
-<h3 id="1-5-两种锁的使用场景"><a href="#1-5-两种锁的使用场景" class="headerlink" title="1.5 两种锁的使用场景"></a>1.5 两种锁的使用场景</h3><ol>
-<li>一般来说，悲观锁不仅会对写操作加锁，还会对读操作加锁，所以它的性能比较低，但是写比较多的情况下需要使用悲观锁；</li>
-<li>相对而言，乐观锁用于读多写少的情况，即很少发生冲突的场景，这样可以省去锁的开销，增加系统的吞吐量。</li>
-</ol>
-<h2 id="二、公平锁与非公平锁"><a href="#二、公平锁与非公平锁" class="headerlink" title="二、公平锁与非公平锁"></a>二、公平锁与非公平锁</h2><p><strong>根据线程获取锁的抢占机制</strong>，锁可以分为公平锁和非公平锁。</p>
-<ul>
-<li><p>公平锁：表示线程获取锁的顺序是按照线程请求锁的时间早晚来决定的，也就是最早请求锁的线程将最早获取到锁；</p>
-</li>
-<li><p>非公平锁：在运行时闯入，也就是先来不一定先得。</p>
-</li>
-</ul>
-<p>在没有公平性需求的前提下尽量使用非公平锁，因为公平锁会带来性能开销。</p>
-<h2 id="三、独占锁和共享锁"><a href="#三、独占锁和共享锁" class="headerlink" title="三、独占锁和共享锁"></a>三、独占锁和共享锁</h2><p><strong>根据锁只能被单个线程持有还是能被多个线程共同持有</strong>，锁可以分为独占锁和共享锁。</p>
-<ul>
-<li>独占锁：保证任何时候都<strong>只有一个线程能得到锁</strong>；</li>
-<li>共享锁：可以同时由多个线程持有，它允许一个资源可以被多线程同时进行操作。</li>
-</ul>
-<h2 id="四、可重入锁和不可重入锁"><a href="#四、可重入锁和不可重入锁" class="headerlink" title="四、可重入锁和不可重入锁"></a>四、可重入锁和不可重入锁</h2><p>当一个线程要获取一个被其他线程持有的独占锁时，该线程会被阻塞，那么当一个线程再次获取它自己已经获取的锁时是否会被阻塞呢？</p>
-<ol>
-<li>如果不被阻塞，那么我们说该锁是可重入的，也就是只要该线程获取了该锁，那么可以无限次数（严格来说是有限次数）地进入被该锁锁住的代码。</li>
-<li>反之，如果被阻塞，说明该锁只能获取一次，即为不可重入锁。</li>
-</ol>
-<h3 id="可重入锁的原理"><a href="#可重入锁的原理" class="headerlink" title="可重入锁的原理"></a>可重入锁的原理</h3><ol>
-<li>在锁内部维护一个线程标示，用来标示该锁目前被哪个线程占用，然后关联一个计数器。一开始计数器值为 <code>0</code>，说明该锁没有被任何线程占用；</li>
-<li>当一个线程获取了该锁时，计数器的值会变成 <code>1</code>，这时其他线程再来获取该锁时会发现锁的所有者不是自己而被阻塞挂起；</li>
-<li>但是当获取了该锁的线程再次获取锁时发现锁拥有者是自己，就会把计数器值加 <code>+ 1</code>，当释放锁后计数器值 <code>- 1</code>；</li>
-<li>当计数器值为 <code>0</code> 时，锁里面的线程标示被重置为 <code>null</code>，这时候被阻塞的线程会被唤醒来竞争获取该锁。</li>
-</ol>
-<h2 id="五、其他锁"><a href="#五、其他锁" class="headerlink" title="五、其他锁"></a>五、其他锁</h2><h3 id="5-1-自旋锁"><a href="#5-1-自旋锁" class="headerlink" title="5.1 自旋锁"></a>5.1 自旋锁</h3><p>自旋锁是指当一个线程在获取锁的时候，如果锁已经被其它线程获取，那么该线程将循环等待，然后不断的判断锁是否能够被成功获取，直到获取到锁才会退出循环。</p>
-<h3 id="5-2-偏向锁-轻量级锁-重量级锁"><a href="#5-2-偏向锁-轻量级锁-重量级锁" class="headerlink" title="5.2 偏向锁/轻量级锁/重量级锁"></a>5.2 偏向锁/轻量级锁/重量级锁</h3><p><code>JVM</code> 为了提高锁的获取与释放效率，而做了以下优化</p>
-<ul>
-<li><p>分化锁的状态：</p>
-<ul>
-<li>无锁状态</li>
-<li>偏向锁状态</li>
-<li>轻量级锁状态</li>
-<li>重量级锁状态</li>
-</ul>
-</li>
-</ul>
-<blockquote>
-<p>说明：</p>
-<ol>
-<li>锁的状态是通过对象监视器在对象头中的字段来表明的。</li>
-<li>四种状态会随着竞争的情况逐渐升级，而且是不可逆的过程，即不可降级。</li>
-</ol>
-</blockquote>
-<ul>
-<li><p>偏向锁</p>
-<p>  偏向锁是指一段同步代码一直被一个线程所访问，那么该线程会自动获取锁。降低获取锁的代价。</p>
-</li>
-<li><p>轻量级锁</p>
-<p>  轻量级锁是指当锁是偏向锁的时候，被另一个线程所访问，偏向锁就会升级为轻量级锁，其他线程会通过自旋的形式尝试获取锁，不会阻塞，提高性能。</p>
-</li>
-<li><p>重量级锁</p>
-<p>  重量级锁是指当锁为轻量级锁的时候，另一个线程虽然是自旋，但自旋不会一直持续下去，当自旋一定次数的时候，还没有获取到锁，就会进入阻塞，该锁膨胀为重量级锁。重量级锁会让其他申请的线程进入阻塞，性能降低。</p>
-</li>
-</ul>
-<h3 id="5-3分段锁"><a href="#5-3分段锁" class="headerlink" title="5.3分段锁"></a>5.3分段锁</h3><blockquote>
-<p>分段锁其实是一种锁的设计，<strong>并不是具体的一种锁</strong>。</p>
-</blockquote>
-<p>我们一般有三种方式降低锁的竞争程度</p>
-<ol>
-<li>减少锁的持有时间；</li>
-<li>降低锁的请求频率；</li>
-<li>使用带有协调机制的独占锁，这些机制允许更高的并发性。</li>
-</ol>
-<p>在某些情况下我们可以将锁分解技术进一步扩展为<strong>一组独立对象上的锁进行分解</strong>，这成为分段锁。</p>
-<p>例如：对于<code>ConcurrentHashMap</code>而言，其并发的实现就是通过分段锁的形式来实现高效的并发操作。</p>
-<blockquote>
-<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
-</blockquote>
-<p><a href="https://segmentfault.com/a/1190000017766364" target="_blank" rel="noopener">参考文章</a></p>
-
+          <p>从<strong>宏观上来分类</strong>，锁可以分为乐观锁与悲观锁。注意，这里说的的锁可以是数据库中的锁，也可以是 <code>Java</code>、<code>Python</code> 等开发语言中的锁技术。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/02/05/c9de5b2f.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1270,11 +1150,959 @@
   
   
 
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2020/01/01/7b2533d5.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/01/01/7b2533d5.html" class="post-title-link" itemprop="url">彻底消灭if-else嵌套</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-01-01 21:13:56" itemprop="dateCreated datePublished" datetime="2020-01-01T21:13:56+08:00">2020-01-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>9.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>18 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><h3 id="1-1-反面教材"><a href="#1-1-反面教材" class="headerlink" title="1.1 反面教材"></a>1.1 反面教材</h3><p>不知大家有没遇到过像<strong>横放着的金字塔</strong>一样的<code>if-else</code>嵌套：</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/01/01/7b2533d5.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    
+
+     <div>
+        
+      </div>
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2020/01/01/985b9754.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/01/01/985b9754.html" class="post-title-link" itemprop="url">Java 函数式编程之 Lambda</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-01-01 21:02:50" itemprop="dateCreated datePublished" datetime="2020-01-01T21:02:50+08:00">2020-01-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JDK/" itemprop="url" rel="index"><span itemprop="name">JDK</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>12 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><code>Java</code>是一门强大的面向对象的语言，除了<code>8</code>种基本的数据类型，其他一切皆为对象。因此，在<code>Java</code>中定义函数或方法都离不开对象，也就意味着很难直接将方法或函数像参数一样传递，而<code>Java8</code>中的<code>Lambda</code>表达式解决了这个问题。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/01/01/985b9754.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    
+
+     <div>
+        
+      </div>
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2020/01/01/6900a0bb.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/01/01/6900a0bb.html" class="post-title-link" itemprop="url">Spring 计时器 StopWatch</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-01-01 11:07:23" itemprop="dateCreated datePublished" datetime="2020-01-01T11:07:23+08:00">2020-01-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <blockquote>
+<p>如果你也觉得<code>System.currentTimeMillis()</code>用起来太麻烦了，欢迎加入<code>StopWatch</code>的怀抱。</p>
+</blockquote>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/01/01/6900a0bb.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    
+
+     <div>
+        
+      </div>
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/12/23/d1d764a8.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/23/d1d764a8.html" class="post-title-link" itemprop="url">Java 时间日期API之 LocalDate</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-23 19:59:16" itemprop="dateCreated datePublished" datetime="2019-12-23T19:59:16+08:00">2019-12-23</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JDK/" itemprop="url" rel="index"><span itemprop="name">JDK</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>10k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>18 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><code>JDK 1.8</code> 已经出来好多年了，<code>LocalDate</code>、<code>LocalDateTime</code>、<code>LocalTime</code> 不比 <code>Date</code> 香吗？</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/23/d1d764a8.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    
+
+     <div>
+        
+      </div>
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/12/11/5ee4191f.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/11/5ee4191f.html" class="post-title-link" itemprop="url">Mybatis 分页： + 拦截器实现</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-11 23:59:53" itemprop="dateCreated datePublished" datetime="2019-12-11T23:59:53+08:00">2019-12-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Mybatis/" itemprop="url" rel="index"><span itemprop="name">Mybatis</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>11k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>20 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>两种方式：<code>Pagehelper</code> 分页和自己实现，根据实际情况自己选用吧。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/11/5ee4191f.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    
+
+     <div>
+        
+      </div>
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/12/11/6ef1e190.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/11/6ef1e190.html" class="post-title-link" itemprop="url">Java 时间日期 API 之 Date</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-11 18:40:36" itemprop="dateCreated datePublished" datetime="2019-12-11T18:40:36+08:00">2019-12-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JDK/" itemprop="url" rel="index"><span itemprop="name">JDK</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>10 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <blockquote>
+<p>虽然 <code>JDK 1.8</code> 已经出来好多年了，<code>LocalDate</code>、<code>LocalDateTime</code>、<code>LocalTime</code> 不知道要比 <code>Date</code> 好用多少倍，但是没办法，很多老项目还是用 <code>Date</code>。</p>
+</blockquote>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/11/6ef1e190.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    
+
+     <div>
+        
+      </div>
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/12/08/dbc7452d.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/08/dbc7452d.html" class="post-title-link" itemprop="url">分布式全局唯一ID生成策略​</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-08 22:42:05" itemprop="dateCreated datePublished" datetime="2019-12-08T22:42:05+08:00">2019-12-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">分布式</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>12 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>分布式系统中我们会对一些数据量大的业务进行分拆，如：用户表，订单表。因为数据量巨大一张表无法承接，就会对其进行分库分表。<br>但一旦涉及到分库分表，就会引申出分布式系统中唯一主键<code>ID</code>的生成问题。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/08/dbc7452d.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    
+
+     <div>
+        
+      </div>
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/11/16/770dcfc3.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/11/16/770dcfc3.html" class="post-title-link" itemprop="url">Java 科学运算之 BigDecimal</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-16 03:56:48" itemprop="dateCreated datePublished" datetime="2019-11-16T03:56:48+08:00">2019-11-16</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JDK/" itemprop="url" rel="index"><span itemprop="name">JDK</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>11 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>如果在资金计算中，还在使用 <code>+</code>、<code>-</code>、<code>*</code>、<code>\</code> 计算，我想你该离删库跑路不远了。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/16/770dcfc3.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    
+
+     <div>
+        
+      </div>
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/11/02/747d9a37.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/11/02/747d9a37.html" class="post-title-link" itemprop="url">Spring 对象属性拷贝方式总结</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-02 22:42:05" itemprop="dateCreated datePublished" datetime="2019-11-02T22:42:05+08:00">2019-11-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>17k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>30 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>当get/set太繁琐时；当BeanUtils无法拷贝集合时；当。。。可能，你需要好好看看这篇文章。文末附完整示例代码。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/02/747d9a37.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    
+
+     <div>
+        
+      </div>
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/11/02/84baea38.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/11/02/84baea38.html" class="post-title-link" itemprop="url">【JUC 并发】Semaphore</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-02 22:02:34" itemprop="dateCreated datePublished" datetime="2019-11-02T22:02:34+08:00">2019-11-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JDK/" itemprop="url" rel="index"><span itemprop="name">JDK</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JDK/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">并发编程</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><code>Semaphore</code> 意思的信号量，它的作用是控制访问特定资源的线程数量。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/02/84baea38.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    
+
+     <div>
+        
+      </div>
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
   </div>
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
