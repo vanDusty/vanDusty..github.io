@@ -1,207 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>【并发编程】JUC之Semaphore</title>
-    <url>/2020/11/02/84baea38.html</url>
-    <content><![CDATA[<p><code>Semaphore</code> 意思的信号量，它的作用是控制访问特定资源的线程数量。</p>
+    <title>【并发编程】浅谈线程安全</title>
+    <url>/2020/09/08/113e477d.html</url>
+    <content><![CDATA[<p><strong>线程安全不是指线程的安全，而是指内存的安全。</strong></p>
 <a id="more"></a>
 
-
-<h2 id="一、Semaphore"><a href="#一、Semaphore" class="headerlink" title="一、Semaphore"></a>一、<code>Semaphore</code></h2><p>信号量是对锁的扩展，不管是同步<code>synchronized</code>还是<code>ReentrantLock</code>，一次只能允许一个线程访问一个资源，但是信号量可以使得<strong>多个线程，同时访问一个资源</strong>。</p>
-<h3 id="1-1-构造函数"><a href="#1-1-构造函数" class="headerlink" title="1.1 构造函数"></a>1.1 构造函数</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Semaphore</span><span class="params">(<span class="keyword">int</span> permits)</span></span>&#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Semaphore</span><span class="params">(<span class="keyword">int</span> permits, <span class="keyword">boolean</span> fair)</span></span>&#123;&#125;</span><br></pre></td></tr></table></figure>
-
-<ol>
-<li><code>permits</code>：能同时申请多少个信号量，主要用来控制线程的并发数量，即同时有多少个线程可以访问资源；</li>
-<li><code>fair</code>：是否公平，若<code>true</code>的话，下次执行的会是先进去等待的线程（先入先出）;</li>
-</ol>
-<h3 id="1-2-主要方法"><a href="#1-2-主要方法" class="headerlink" title="1.2 主要方法"></a>1.2 主要方法</h3><ol>
-<li><code>acquire()</code>：获取许可执行，若无法获得，会持续等待，直到线程释放一个许可；</li>
-<li><code>tryAcquire()</code>：尝试获得准入许可，得到返回<code>true</code>，没有返回<code>false</code>，不会持续等待；</li>
-<li><code>tryAcquire(long timeout, TimeUnit unit)</code>：与<code>tryAcquire()</code>类似，但是会有一个等待的时间，超过时间立即返回；</li>
-<li><code>release()</code>：释放许可，让其他线程获取许可执行。</li>
-</ol>
-<p>显然这个功能可以用于<strong>资源访问控制</strong>或者是<strong>限流</strong>的操作。</p>
-<h2 id="二、Semaphore的使用"><a href="#二、Semaphore的使用" class="headerlink" title="二、Semaphore的使用"></a>二、<code>Semaphore</code>的使用</h2><p>首先，我们考虑下<code>Semaphore</code>是用来解决哪类问题的？</p>
-<h3 id="2-1-CyclicBarrier和CountDownLatch无法解决的场景"><a href="#2-1-CyclicBarrier和CountDownLatch无法解决的场景" class="headerlink" title="2.1 CyclicBarrier和CountDownLatch无法解决的场景"></a>2.1 <code>CyclicBarrier</code>和<code>CountDownLatch</code>无法解决的场景</h3><p>前面我们已经介绍了<code>CyclicBarrier</code>和<code>CountDownLatch</code>，有哪些场景是这两个还无法解决的。</p>
+<h2 id="一、线程不安全"><a href="#一、线程不安全" class="headerlink" title="一、线程不安全"></a>一、线程不安全</h2><h3 id="1-1-线程不安全"><a href="#1-1-线程不安全" class="headerlink" title="1.1 线程不安全"></a>1.1 线程不安全</h3><blockquote>
+<p>假设某个线程把数据处理到一半，觉得很累，就去休息了一会；回来准备接着处理，却发现数据已经被修改了，不是自己离开时的样子了，可能被其它线程修改了。</p>
+</blockquote>
 <ul>
-<li>场景一：抢车位</li>
-</ul>
-<p>无论是景区、商场还是住宅小区，停车场中的车位数量是一定的。当车位满了以后，想要进入停车场停车的车辆只能等待。等到其他车辆出来之后，才可以进入，即每个车辆必须只能停在其中一个位置上(互斥使用的)。</p>
-<ul>
-<li>场景二：海底捞吃火锅</li>
-</ul>
-<p>去海底捞吃火锅的时候，餐厅餐桌数量是固定的，假设有<code>3</code>桌。现在来了<code>10</code>桌客人，那么其他客人就需要在门口候餐区等待。当有其他桌吃完离开之后，进去一个。</p>
-<ul>
-<li><p><code>CyclicBarrier</code>和<code>CountDownLatch</code> 能否解决当前问题？</p>
-<ol>
-<li>根据<code>CountDownLatch</code>的特性：只能使用一次，这两种场景当然不能使用；</li>
-<li><code>CyclicBarrier</code>：虽然可以使用多次，但是需要<code>reset()</code>之后才可以多次使用。意思就是：<strong>只有等餐厅里面<code>3</code>个桌的客人都吃完之后，才可以让其他人进来就餐的</strong>，显然也是不符合业务逻辑的。</li>
-</ol>
+<li><p>目前主流操作系统都是多任务的，即多个进程同时运行。为了保证安全，每个进程只能访问分配给自己的内存空间，而不能访问别的进程的，这是由操作系统保障的。</p>
+</li>
+<li><p>在每个进程的内存空间中都会有一块特殊的<strong>公共区域</strong>，通常称为<strong>堆（内存）</strong>。进程内的所有线程都可以访问到该区域，这就是造成问题的潜在原因。</p>
 </li>
 </ul>
-<h3 id="2-2-代码实战"><a href="#2-2-代码实战" class="headerlink" title="2.2 代码实战"></a>2.2 代码实战</h3><blockquote>
-<p>以下代码以海底捞等位吃饭为例，即吃完一桌放一桌客人进来。</p>
+<h3 id="1-2-线程安全"><a href="#1-2-线程安全" class="headerlink" title="1.2 线程安全"></a>1.2 线程安全</h3><p><strong>所以线程安全指的是：在堆内存中的数据由于可以被任何线程访问到，在没有限制的情况下存在被意外修改的风险</strong>。</p>
+<blockquote>
+<p>即堆内存空间在没有保护机制的情况下，对多线程来说是不安全的地方，因为你放进去的数据，可能被别的线程<strong>破坏</strong>。</p>
 </blockquote>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SemaphoreDemo</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 假设有十桌客人准备就餐</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> tableCount = <span class="number">10</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="comment">// 信号量，即餐厅只有3桌，仅能提供3桌客人同时就餐</span></span><br><span class="line">        Semaphore semaphore = <span class="keyword">new</span> Semaphore(<span class="number">3</span>, <span class="keyword">true</span>);</span><br><span class="line">        Long startTime = System.currentTimeMillis();</span><br><span class="line">        <span class="comment">// 计数器，计算什么时候全部就餐结束</span></span><br><span class="line">        CountDownLatch countDownLatch = <span class="keyword">new</span> CountDownLatch(tableCount);</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= tableCount; i++) &#123;</span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">int</span> count = i;</span><br><span class="line">            Thread thread = <span class="keyword">new</span> Thread(() -&gt; &#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    <span class="comment">// 获取资源，开始处理</span></span><br><span class="line">                    semaphore.acquire();</span><br><span class="line">                    System.out.println(<span class="string">"第"</span> + count + <span class="string">"批桌客人开始就餐"</span>);</span><br><span class="line">                    TimeUnit.SECONDS.sleep(<span class="keyword">new</span> Random().nextInt(<span class="number">5</span>));</span><br><span class="line">                    System.out.println(<span class="string">"第"</span> + count + <span class="string">"批桌客人就餐结束"</span>);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                    <span class="comment">// 处理结束，资源释放</span></span><br><span class="line">                    semaphore.release();</span><br><span class="line">                    countDownLatch.countDown();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;, <span class="string">"线程"</span> + i);</span><br><span class="line">            thread.start();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 等待全部客人就餐结束</span></span><br><span class="line">        countDownLatch.await();</span><br><span class="line">        System.out.println(<span class="string">"所有客人就餐完毕，总耗时"</span> + (System.currentTimeMillis() - startTime) + <span class="string">"毫秒"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、有什么解决方案"><a href="#二、有什么解决方案" class="headerlink" title="二、有什么解决方案"></a>二、有什么解决方案</h2><h3 id="2-1-私有化"><a href="#2-1-私有化" class="headerlink" title="2.1 私有化"></a>2.1 私有化</h3><p>除了所有线程都可以访问的堆内存，操作系统会为每个线程分配属于它自己的内存空间，通常称为<strong>栈内存</strong>，<strong>其它线程无权访问</strong>，这也是由操作系统保障的。</p>
+<blockquote>
+<p>如果一些数据只有某个线程会使用，其它线程不能操作也不需要操作，这些数据就可以放入线程的栈内存中。较为常见的就是局部变量。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">double</span> <span class="title">avgScore</span><span class="params">(<span class="keyword">double</span>[] scores)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">double</span> sum = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">double</span> score : scores) &#123;</span><br><span class="line">        sum += score;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> count = scores.length;</span><br><span class="line">    <span class="keyword">double</span> avg = sum / count;</span><br><span class="line">    <span class="keyword">return</span> avg;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
+<blockquote>
+<p>这里的变量<code>sum</code>，<code>count</code>，<code>avg</code>都是局部变量，它们都会被分配在线程栈内存中。</p>
+</blockquote>
+<p>假如现在<code>A</code>线程来执行这个方法，这些变量会在<code>A</code>的栈内存分配。与此同时，<code>B</code>线程也来执行这个方法，这些变量也会在<code>B</code>的栈内存中分配。</p>
+<p>也就是说<strong>这些数据会在每个线程的栈内存中都分配一份</strong>。由于线程的栈内存只能自己访问，所以栈内存中的数据只属于自己，其它线程根本就不知道。</p>
+<h3 id="2-2-线程本地"><a href="#2-2-线程本地" class="headerlink" title="2.2 线程本地"></a>2.2 线程本地</h3><p><code>2.1</code>的解决方案是基于<strong>位置</strong>，因为定义局部变量的<strong>位置</strong>是在方法里，它的使用范围也就被限制在这个方法里了，因此局部变量的安全是由<strong>位置</strong>来保障的。</p>
+<blockquote>
+<p>往往会有一个变量需要多个方法都能够使用的情况，此时定义这个变量的<strong>位置</strong>就不能在方法里面了，而应该在方法外面。也就是说，这时候的变量将应该分配在<strong>公共的堆内存</strong>中。这种情况下，如何保证公共区域变量的安全呢？</p>
+</blockquote>
+<p>要让公共区域堆内存中的数据对于每个线程都是安全的，我们可以让每个线程都拷贝一份，每个线程只处理自己的这一份而不去影响别的线程的数据，这不就安全了吗。</p>
+<p>我猜大家应该想到了，就是<code>ThreadLocal</code>。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">StudentAssistant</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    ThreadLocal&lt;String&gt; realName = <span class="keyword">new</span> ThreadLocal&lt;&gt;();</span><br><span class="line">    ThreadLocal&lt;Double&gt; totalScore = <span class="keyword">new</span> ThreadLocal&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="function">String <span class="title">determineDegree</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">double</span> score = totalScore.get();</span><br><span class="line">        <span class="keyword">if</span> (score &gt;= <span class="number">90</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">"A"</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (score &gt;= <span class="number">80</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">"B"</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (score &gt;= <span class="number">70</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">"C"</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (score &gt;= <span class="number">60</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">"D"</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"E"</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">double</span> <span class="title">determineOptionalcourseScore</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">double</span> score = totalScore.get();</span><br><span class="line">        <span class="keyword">if</span> (score &gt;= <span class="number">90</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">10</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (score &gt;= <span class="number">80</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">20</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (score &gt;= <span class="number">70</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">30</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (score &gt;= <span class="number">60</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">40</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">60</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><code>StudentAssistant.java</code>有两个成员变量，<code>realName</code>和<code>totalScore</code>，都是<code>ThreadLocal</code>类型的。每个线程在运行时都会拷贝一份存储到自己本地。</p>
+</blockquote>
+<p>线程类（<code>Thread</code>）有一个成员变量，类似于<code>Map</code>类型的，专门用于存储<code>ThreadLocal</code>类型的数据。从逻辑从属关系来讲，这些<code>ThreadLocal</code>数据是属于<code>Thread</code>类的成员变量级别的。从所在<strong>位置</strong>的角度来讲，这些<code>ThreadLocal</code>数据是分配在公共区域的<strong>堆内存</strong>中的。</p>
+<blockquote>
+<p>说直白一些，就是把堆内存中的一个数据复制<code>N</code>份，每个线程认领<code>1</code>份，同时规定好，每个线程只能玩自己的那份，不准影响别人。</p>
+</blockquote>
+<p>需要说明的是<strong>这<code>N</code>份数据都还是存储在公共区域堆内存里的</strong>，经常听到的<strong>线程本地</strong>，是从逻辑从属关系上来讲的，这些数据和线程一一对应，仿佛成了线程自己领地的东西了。其实从数据所在<strong>位置</strong>的角度来讲，它们都位于公共的堆内存中，只不过被线程认领了而已。</p>
+<h3 id="2-3-互斥锁"><a href="#2-3-互斥锁" class="headerlink" title="2.3 互斥锁"></a>2.3 互斥锁</h3><p>如果公共区域（堆内存）的数据，要被多个线程操作时，为了确保数据的安全性（或一致性），需要在数据旁边放一把锁，要想操作数据，先获取锁。</p>
 <ol>
-<li>首先我们申明了信号量为<code>3</code>，那么同时就可以有<code>3</code>个线程进入到临界区中;</li>
-<li>当后续线程使用<code>acquire()</code>时候申请信号量，也必须有线程通过<code>release()</code>释放信号量。如果不释放，就意没有线程能进入。</li>
+<li>假设一个线程来到数据跟前一看，发现锁是空闲的，没有人持有。于是它就拿到了这把锁，然后开始操作数据，干了一会活，累了，就去休息了。</li>
+<li>这时，又来了一个线程，发现锁被别人持有着，按照规定，它不能操作数据，因为它无法得到这把锁。当然，它可以选择等待，或放弃，转而去干别的。</li>
 </ol>
-<ul>
-<li>结果打印如下</li>
-</ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">第1批桌客人开始就餐</span><br><span class="line">第3批桌客人开始就餐</span><br><span class="line">第2批桌客人开始就餐</span><br><span class="line">第1批桌客人就餐结束</span><br><span class="line">第4批桌客人开始就餐</span><br><span class="line">第2批桌客人就餐结束</span><br><span class="line">第5批桌客人开始就餐</span><br><span class="line">第3批桌客人就餐结束</span><br><span class="line">第6批桌客人开始就餐</span><br><span class="line">第4批桌客人就餐结束</span><br><span class="line">第7批桌客人开始就餐</span><br><span class="line">第7批桌客人就餐结束</span><br><span class="line">第8批桌客人开始就餐</span><br><span class="line">第8批桌客人就餐结束</span><br><span class="line">第5批桌客人就餐结束</span><br><span class="line">第6批桌客人就餐结束</span><br><span class="line">第10批桌客人开始就餐</span><br><span class="line">第10批桌客人就餐结束</span><br><span class="line">第9批桌客人开始就餐</span><br><span class="line">第9批桌客人就餐结束</span><br><span class="line">所有客人就餐完毕，总耗时7060毫秒</span><br></pre></td></tr></table></figure>
+<p>第一个线程之所以敢大胆的去睡觉，就是因为它手里拿着锁呢，其它线程是不可能操作数据的。当它回来后继续把数据操作完，就可以把锁给释放了。锁再次回到空闲状态，其它线程就可以来抢这把锁了，谁抢到了锁谁才可以操作数据。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ClassAssistant</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">double</span> totalScore = <span class="number">60</span>;</span><br><span class="line">    <span class="keyword">final</span> Lock lock = <span class="keyword">new</span> Lock();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">addScore</span><span class="params">(<span class="keyword">double</span> score)</span> </span>&#123;</span><br><span class="line">        lock.obtain();</span><br><span class="line">        totalScore += score;</span><br><span class="line">        lock.release();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">subScore</span><span class="params">(<span class="keyword">double</span> score)</span> </span>&#123;</span><br><span class="line">        lock.obtain();</span><br><span class="line">        totalScore -= score;</span><br><span class="line">        lock.release();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>从运行结果中，仅当有一个离开餐桌下一位才能进入餐厅就餐，达到我们预期。</p>
-<h3 id="2-3-使用注意点"><a href="#2-3-使用注意点" class="headerlink" title="2.3 使用注意点"></a>2.3 使用注意点</h3><p>在使用<code>acquire()</code>获取资源，并处理结束后，需要在<code>finally</code>里面调用<code>release()</code>方法进行释放资源，如果不能正常释放资源，会导致<strong>信号量泄漏</strong>。</p>
-<p><a href="https://github.com/vanDusty/JDK/tree/master/JDK-JUC/src/main/java/cn/van/jdk/juc/semaphore" target="_blank" rel="noopener">【Github 示例源码】</a></p>
 <blockquote>
-<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+<p>假定一个班级的初始分数是<code>60</code>分，这个班级抽出<code>10</code>名学生来同时参加<code>10</code>个不同的答题节目，每个学生答对一次为班级加上<code>5</code>分，答错一次减去<code>5</code>分。因为<code>10</code>个学生一起进行，所以这一定是一个并发情形。为了保证数据的一致性，需要在每次操作前先获取锁，操作完成后再释放锁。</p>
 </blockquote>
-]]></content>
-      <categories>
-        <category>JDK</category>
-        <category>并发编程</category>
-      </categories>
-      <tags>
-        <tag>JUC</tag>
-        <tag>并发编程</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>【并发编程】JUC之CyclicBarrier</title>
-    <url>/2020/10/05/da9c61f3.html</url>
-    <content><![CDATA[<p><code>CyclicBarrier</code> 是一种多线程并发控制工具，与<code>CountDownLatch</code>非常类似。它可以让一组线程到达栅栏时被阻塞，直到最后一个线程到达，才放行通过。比如斗地主，需要等待所有玩家进度条 <code>100%</code> 了，才能进入游戏。</p>
-<a id="more"></a>
-
-
-<h2 id="一、CyclicBarrier"><a href="#一、CyclicBarrier" class="headerlink" title="一、CyclicBarrier"></a>一、<code>CyclicBarrier</code></h2><h3 id="1-1-构造函数"><a href="#1-1-构造函数" class="headerlink" title="1.1 构造函数"></a>1.1 构造函数</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">CyclicBarrier</span><span class="params">(<span class="keyword">int</span> parties)</span> </span>&#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">CyclicBarrier</span><span class="params">(<span class="keyword">int</span> parties, Runnable barrierAction)</span> </span>&#123;&#125;</span><br></pre></td></tr></table></figure>
-
+<h2 id="2-4-CAS"><a href="#2-4-CAS" class="headerlink" title="2.4 CAS"></a>2.4 CAS</h2><blockquote>
+<p>上个方案虽然可行，但是锁的获取和释放是要花费一定的代价，如果在线程数目特别少的时候，可能根本就不会有别的线程来操作数据，此时你还要获取锁和释放锁，可以说是一种浪费。</p>
+</blockquote>
+<p>比如我把数据放到公共区域的堆内存中，但是始终都只会有<code>1</code>个线程，也就是单线程模型，那这数据肯定是安全的。</p>
+<p>针对这种<strong>地广人稀</strong>的情况，专门提出了一种方法，叫<code>CAS</code>（<code>Compare And Swap</code>）。就是在并发很小的情况下，数据被意外修改的概率很低，但是又存在这种可能性，此时就用<code>CAS</code>。</p>
 <ol>
-<li><code>parties</code>：阻塞的线程数量，每个线程使用<code>await()</code>方法告诉<code>CyclicBarrier</code>我已经到达了屏障，然后当前线程被阻塞；</li>
-<li><code>barrierAction</code>：当最后一个线程到达是先执行这个任务，再去执行后面的流程(优先执行<code>barrierAction</code>，再执行主流程，方便处理更复杂的业务场景)。</li>
+<li>假如一个线程操作数据，干了一半活，累了，想要去休息。于是它记录下当前数据的状态（就是数据的值），回家睡觉了。</li>
+<li>醒来后打算继续接着干活，但是又担心数据可能被修改了，于是就把睡觉前保存的数据状态拿出来和现在的数据状态比较一下，如果一样，说明自己在睡觉期间，数据没有被人动过（当然也有可能是先被改成了其它，然后又改回来了，这就是<code>ABA</code>问题了），那就接着继续干。如果不一样，说明数据已经被修改了，那之前做的那些操作其实都白瞎了，就干脆放弃，从头再重新开始处理一遍。</li>
 </ol>
-<h3 id="1-2-主要方法"><a href="#1-2-主要方法" class="headerlink" title="1.2 主要方法"></a>1.2 主要方法</h3><ol>
-<li><code>int await()</code>：当前线程到达栅栏点等待，<code>parties</code>数目<code>-1</code>。注意：<strong>调用次数要和入参数量一致，否则会一直阻塞的等待</strong>；</li>
-<li><code>int getParties()</code>：返回设置屏障外的线程数；</li>
-<li><code>void reset()</code>：将屏障外的线程数重置，如果还有其他线程正在屏障等待，则会抛出<code>BrokenBarrierException</code>。</li>
-</ol>
-<h2 id="二、CyclicBarrier的使用"><a href="#二、CyclicBarrier的使用" class="headerlink" title="二、CyclicBarrier的使用"></a>二、<code>CyclicBarrier</code>的使用</h2><p><code>CyclicBarrier</code>用于使线程彼此等待，当不同的线程分别处理计算中的一部分服务，并且当所有线程都完成执行的时候，使用它，也就是说当多个线程执行不同的子任务并且需要组合这些子任务的输出来形成最终的输出，可以使用<code>CyclicBarrier</code>。完成执行后，线程调用<code>await()</code>方法并且等待其他线程到达栅栏。一旦所有的线程到达，<code>CyclicBarrier</code>就会为线程提供方法。</p>
-<h3 id="2-1-CyclicBarrier应用场景例子"><a href="#2-1-CyclicBarrier应用场景例子" class="headerlink" title="2.1 CyclicBarrier应用场景例子"></a>2.1 <code>CyclicBarrier</code>应用场景例子</h3><p>接下来模拟斗地主玩家的载入：地主玩家初始化游戏、贫民玩家1初始化游戏和贫民玩家2初始化游戏都进行完成后才能进入游戏。</p>
+<p>所以<code>CAS</code>这种方式适用于并发量不高的情况，也就是数据被意外修改的可能性较小的情况。如果并发量很高的话，你的数据一定会被修改，每次都要放弃，然后从头再来，这样反而花费的代价更大了，还不如直接加锁。</p>
 <ul>
-<li>【地主玩家】初始化游戏</li>
+<li><code>ABA</code>问题，举个例子，大家都懂了</li>
 </ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LandlordPlayer</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> CyclicBarrier cyclicBarrier;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">LandlordPlayer</span><span class="params">(CyclicBarrier cyclicBarrier)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.cyclicBarrier = cyclicBarrier;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 地主玩家初始化游戏需要2秒</span></span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">2</span>);</span><br><span class="line">            logger.info(<span class="string">"【地主玩家】进入游戏"</span>);</span><br><span class="line">            cyclicBarrier.await();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException | BrokenBarrierException e) &#123;</span><br><span class="line">            logger.info(<span class="string">"【地主玩家】进入游戏失败！"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>【贫民玩家1】初始化游戏</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FarmerPlayer1</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> CyclicBarrier cyclicBarrier;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">FarmerPlayer1</span><span class="params">(CyclicBarrier cyclicBarrier)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.cyclicBarrier = cyclicBarrier;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 贫民玩家1玩家初始化游戏需要3秒</span></span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">3</span>);</span><br><span class="line">            logger.info(<span class="string">"【贫民玩家1】进入游戏"</span>);</span><br><span class="line">            cyclicBarrier.await();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException | BrokenBarrierException e) &#123;</span><br><span class="line">            logger.info(<span class="string">"【贫民玩家1】进入游戏失败"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>【贫民玩家2】初始化游戏</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FarmerPlayer2</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> CyclicBarrier cyclicBarrier;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">FarmerPlayer2</span><span class="params">(CyclicBarrier cyclicBarrier)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.cyclicBarrier = cyclicBarrier;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 贫民玩家2玩家初始化游戏需要3秒</span></span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">3</span>);</span><br><span class="line">            logger.info(<span class="string">"【贫民玩家2】进入游戏"</span>);</span><br><span class="line">            cyclicBarrier.await();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException | BrokenBarrierException e) &#123;</span><br><span class="line">            logger.info(<span class="string">"【贫民玩家2】进入游戏失败！"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>游戏加载流程</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CyclicBarrierTest</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">cyclicBarrierDemo</span><span class="params">()</span> <span class="keyword">throws</span> BrokenBarrierException, InterruptedException </span>&#123;</span><br><span class="line">        Long startTime = System.currentTimeMillis();</span><br><span class="line">        <span class="comment">// 4个是因为还有一个主线程也在等待</span></span><br><span class="line">        logger.info(<span class="string">"所有玩家就绪，准备进入游戏"</span>);</span><br><span class="line">        CyclicBarrier cyclicBarrier = <span class="keyword">new</span> CyclicBarrier(<span class="number">4</span>, <span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                logger.info(<span class="string">"所有玩家进度条100%，游戏读取中。。。。"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="comment">// 注意：初始化线程数量（如果线程数少于所需线程，则会阻塞）</span></span><br><span class="line">        Executor executor = Executors.newFixedThreadPool(<span class="number">3</span>);</span><br><span class="line">        executor.execute(<span class="keyword">new</span> LandlordPlayer(cyclicBarrier));</span><br><span class="line">        executor.execute(<span class="keyword">new</span> FarmerPlayer2(cyclicBarrier));</span><br><span class="line">        executor.execute(<span class="keyword">new</span> FarmerPlayer1(cyclicBarrier));</span><br><span class="line">        cyclicBarrier.await();</span><br><span class="line">        <span class="comment">// 模拟游戏读取需要 1 秒</span></span><br><span class="line">        TimeUnit.SECONDS.sleep(<span class="number">1</span>);</span><br><span class="line">        logger.info(<span class="string">"游戏加载成功，耗时[&#123;&#125;]毫秒，开始游戏...."</span>, System.currentTimeMillis() - startTime);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>结果打印如下</li>
-</ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">17:12:01.324 [main] ... - 所有玩家就绪，准备进入游戏</span><br><span class="line">17:12:03.337 [pool-1-thread-1] ... - 【地主玩家】进入游戏</span><br><span class="line">17:12:04.338 [pool-1-thread-3] ... - 【贫民玩家1】进入游戏</span><br><span class="line">17:12:04.338 [pool-1-thread-2] ... - 【贫民玩家2】进入游戏</span><br><span class="line">17:12:04.338 [pool-1-thread-2] ... - 所有玩家进度条100%，游戏读取中。。。。</span><br><span class="line">17:12:05.342 [main] ... - 游戏加载成功，耗时[4020]毫秒，开始游戏....</span><br></pre></td></tr></table></figure>
-
-<p>由于多线程并发使各个玩家同时加载，整个游戏加载耗时 <code>4020</code> 毫秒，效率比较高。</p>
-<h3 id="2-2-使用注意点"><a href="#2-2-使用注意点" class="headerlink" title="2.2 使用注意点"></a>2.2 使用注意点</h3><ol>
-<li>相较于<code>CountDownLatch</code>，<code>CyclicBarrier</code> 可以重复使用，因为会去刷新 count 的数量；</li>
-<li><code>await()</code>调用次数要和入参数量一致，否则会一直阻塞的等待。</li>
-</ol>
-<h3 id="2-3-CyclicBarrier和CountDownLatch的区别"><a href="#2-3-CyclicBarrier和CountDownLatch的区别" class="headerlink" title="2.3 CyclicBarrier和CountDownLatch的区别"></a>2.3 <code>CyclicBarrier</code>和<code>CountDownLatch</code>的区别</h3><ol>
-<li><code>CountDownLatch</code>的计数器只能使用一次，而<code>CyclicBarrier</code>的计数器可以使用<code>reset()</code>方法重置，可以使用多次，所以<code>CyclicBarrier</code>能够处理更为复杂的场景；</li>
-<li><code>CyclicBarrier</code>还提供了一些其他有用的方法，比如<code>getNumberWaiting()</code>方法可以获得<code>CyclicBarrier</code>阻塞的线程数量，<code>isBroken()</code>方法用来了解阻塞的线程是否被中断；</li>
-<li><code>CountDownLatch</code>是只阻塞主线程，所有子线程全部执行完毕之后唤醒主线程去执行；而<code>CyclicBarrier</code>则是所有线程到达栅栏点都会阻塞等待，直到后一个到达才唤醒所有的阻塞线程。</li>
-</ol>
-<p><a href="https://github.com/vanDusty/JDK/tree/master/JDK-JUC/src/main/java/cn/van/jdk/juc/cyclicbarrier" target="_blank" rel="noopener">【Github 示例源码】</a></p>
 <blockquote>
-<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+<ol>
+<li>假如你睡觉前数据是<code>5</code>，醒来后数据还是<code>5</code>，并不能肯定数据没有被修改过。可能数据先被修改成<code>8</code>然后又改回到<code>5</code>，只是你不知道罢了。对于这个问题，其实也很好解决，再加一个版本号字段就行了，并规定只要修改数据，必须使版本号加<code>1</code>。</li>
+<li>这样你睡觉前数据是<code>5</code>版本号是<code>0</code>，醒来后数据是<code>5</code>版本号是<code>0</code>，表明数据没有被修改。如果数据是<code>5</code>版本号是<code>2</code>，表明数据被改动了<code>2</code>次，先改为其它，然后又改回到<code>5</code>。</li>
+</ol>
 </blockquote>
+<p>这里的<code>CAS</code>其实就是乐观锁，上一种方案里的获取锁和释放锁其实就是悲观锁。乐观锁持乐观态度，就是假设我的数据不会被意外修改，如果修改了，就放弃，从头再来。悲观锁持悲观态度，就是假设我的数据一定会被意外修改，那干脆直接加锁得了。</p>
+<h2 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h2><p>为了保证线程安全，本文提出了四种方案：</p>
+<ol>
+<li>前两种属于隔离法，一个是位置隔离，一个是数据隔离。</li>
+<li>然后是标记法，通过加锁进行标记。</li>
+<li>最后一种是大胆法，先来怼一把试试，若不行从头再来（适用于并发不高的情况）。</li>
+</ol>
 ]]></content>
       <categories>
-        <category>JDK</category>
         <category>并发编程</category>
+        <category>多线程</category>
       </categories>
       <tags>
-        <tag>JUC</tag>
         <tag>并发编程</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>【并发编程】JUC之CountDownLatch</title>
-    <url>/2020/10/01/a99f8c04.html</url>
-    <content><![CDATA[<blockquote>
-<p>当 <code>N</code> 个线程同时完成某项任务时，如何知道他们都已经执行完毕了。</p>
-</blockquote>
-<a id="more"></a>
-
-
-<h2 id="一、CountDownLatch"><a href="#一、CountDownLatch" class="headerlink" title="一、CountDownLatch"></a>一、<code>CountDownLatch</code></h2><p><code>CountDownLatch</code> 是 <code>JDK 1.5</code>开始<code>concurrent</code>包里提供的，并发编程工具类。<br>可以把 <code>CountDownLatch</code> 看作一个多线程控制工具类，用于协调多个线程的同步，能让一个线程在等待其他线程执行完任务后，再继续执行。内部是通过一个计数器去完成实现。</p>
-<h3 id="1-1-构造函数"><a href="#1-1-构造函数" class="headerlink" title="1.1 构造函数"></a>1.1 构造函数</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">CountDownLatch</span><span class="params">(<span class="keyword">int</span> count)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (count &lt; <span class="number">0</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"count &lt; 0"</span>);</span><br><span class="line">    <span class="keyword">this</span>.sync = <span class="keyword">new</span> Sync(count);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><code>count</code>代表需要执行的线程数量,也是同步计数器初始化的数量，只有当同步计数值为<code>0</code>，主线程才会向下执行。</p>
-<h3 id="1-2-主要方法"><a href="#1-2-主要方法" class="headerlink" title="1.2 主要方法"></a>1.2 主要方法</h3><ol>
-<li><code>void await()</code>：调用改方法的线程会被挂起，直到<code>count</code>值为<code>0</code>;</li>
-<li><code>boolean await(long timeout, TimeUnit unit)</code>：与上面的类似，只不过等待一定的时间后<code>count</code>值还没变为<code>0</code>的话就会继续执行;</li>
-<li><code>void countDown()</code>：在计数值 <code>&gt; 0</code>的情况下，每当一个线程完成任务，计数减去<code>1</code>;</li>
-<li><code>long getCount()</code>：获取计数器的值。</li>
-</ol>
-<blockquote>
-<p>当计数器应该为<code>0</code>，所有的线程执行完自己的任务。在<code>CountDownLatch</code>等待的线程，可以继续执行的任务。</p>
-</blockquote>
-<h2 id="二、CountDownLatch的使用"><a href="#二、CountDownLatch的使用" class="headerlink" title="二、CountDownLatch的使用"></a>二、<code>CountDownLatch</code>的使用</h2><p>适用于一个任务的执行需要等待其他任务执行完毕，方可执行的场景。</p>
-<blockquote>
-<p><code>CountDownLatch</code>是一次性的，只能通过构造方法设置初始计数量，计数完了无法进行复位，不能达到复用。</p>
-</blockquote>
-<h3 id="2-1-CountDownLatch应用场景例子"><a href="#2-1-CountDownLatch应用场景例子" class="headerlink" title="2.1 CountDownLatch应用场景例子"></a>2.1 <code>CountDownLatch</code>应用场景例子</h3><p>丈夫和妻子一块儿去买菜，假设买蔬菜需要<code>5</code>秒，买肉需要<code>3</code>秒，如果丈夫和妻子分开去买，然后一块儿回家。</p>
-<ul>
-<li>妻子去蔬菜</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WifeTask</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> CountDownLatch countDownLatch;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">WifeTask</span><span class="params">(CountDownLatch countDownLatch)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.countDownLatch = countDownLatch;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 买蔬菜需要5秒</span></span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">5</span>);</span><br><span class="line">            logger.info(<span class="string">"妻子蔬菜买好了"</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            logger.info(<span class="string">"妻子蔬菜没买到"</span>);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (countDownLatch != <span class="keyword">null</span>) &#123;</span><br><span class="line">                countDownLatch.countDown();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>丈夫去买肉</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HusbandTask</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> CountDownLatch countDownLatch;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">HusbandTask</span><span class="params">(CountDownLatch countDownLatch)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.countDownLatch = countDownLatch;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 买肉需要3秒</span></span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">3</span>);</span><br><span class="line">            logger.info(<span class="string">"丈夫肉买好了"</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            logger.info(<span class="string">"丈夫肉没买到"</span>);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (countDownLatch != <span class="keyword">null</span>) &#123;</span><br><span class="line">                countDownLatch.countDown();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>买好菜，在指定地点集合回家（回到主线程），计算耗时</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CountDownLatchTest</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">countDownLatchDemo</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        Long startTime = System.currentTimeMillis();</span><br><span class="line">        CountDownLatch countDownLatch = <span class="keyword">new</span> CountDownLatch(<span class="number">2</span>);</span><br><span class="line">        logger.info(<span class="string">"夫妻分头去买菜"</span>);</span><br><span class="line">        <span class="comment">// 夫妻分头去买菜，夫妻买蔬菜(需要5秒)，丈夫卖肉(需要3秒)</span></span><br><span class="line">        Executor executor = Executors.newFixedThreadPool(<span class="number">2</span>);</span><br><span class="line">        executor.execute(<span class="keyword">new</span> HusbandTask(countDownLatch));</span><br><span class="line">        executor.execute(<span class="keyword">new</span> WifeTask(countDownLatch));</span><br><span class="line">        <span class="comment">// 挂起任务，等菜买好了再一起回家</span></span><br><span class="line">        countDownLatch.await();</span><br><span class="line">        logger.info(<span class="string">"菜买好了，夫妻双双把家还，买菜合计耗时:&#123;&#125;毫秒"</span>, (System.currentTimeMillis() - startTime));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>结果打印如下</li>
-</ul>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">21:36:42.964 ... - 夫妻分头去买菜</span><br><span class="line">21:36:45.973 ... - 丈夫肉买好了</span><br><span class="line">21:36:47.972 ... - 妻子蔬菜买好了</span><br><span class="line">21:36:47.973 ... - 菜买好了，夫妻双双把家还，买菜合计耗时:5011毫秒</span><br></pre></td></tr></table></figure>
-
-<p>通过<code>CountDownLatch</code>初始化计数器值为<code>2</code>，让夫妻两人各自去买菜，完成一项，计数器值减<code>1</code>，都买好后，计数器值为<code>0</code>，回到主线程，一起回家。</p>
-<h3 id="2-2-CountDownLatch使用以及注意点"><a href="#2-2-CountDownLatch使用以及注意点" class="headerlink" title="2.2 CountDownLatch使用以及注意点"></a>2.2 <code>CountDownLatch</code>使用以及注意点</h3><ol>
-<li>一旦<code>count</code>达到零，不能再用<code>CountDownLatch</code>(即不可复用)。</li>
-<li>主线程通过调用<code>CountDownLatch.await()</code>方法等待<code>Latch</code>，而其他线程调用<code>CountDownLatch.countDown()</code>以通知它们已完成。</li>
-<li>计数器必须和要执行的线程数匹配，如果计数器大于了要执行的线程数目，那么<code>count</code>最后不会为<code>0</code>，调用的主线程也不会继续执行，主线程将会一直处于等待状态。</li>
-</ol>
-<p><a href="https://github.com/vanDusty/JDK/tree/master/JDK-JUC/src/main/java/cn/van/jdk/juc/countdownlatch" target="_blank" rel="noopener">【Github 示例源码】</a></p>
-<blockquote>
-<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
-</blockquote>
-]]></content>
-      <categories>
-        <category>JDK</category>
-        <category>并发编程</category>
-      </categories>
-      <tags>
-        <tag>JUC</tag>
-        <tag>并发编程</tag>
+        <tag>线程安全</tag>
       </tags>
   </entry>
   <entry>
@@ -656,6 +545,210 @@
       </categories>
       <tags>
         <tag>坐标</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>【并发编程】JUC之Semaphore</title>
+    <url>/2020/05/12/84baea38.html</url>
+    <content><![CDATA[<p><code>Semaphore</code> 意思的信号量，它的作用是控制访问特定资源的线程数量。</p>
+<a id="more"></a>
+
+
+<h2 id="一、Semaphore"><a href="#一、Semaphore" class="headerlink" title="一、Semaphore"></a>一、<code>Semaphore</code></h2><p>信号量是对锁的扩展，不管是同步<code>synchronized</code>还是<code>ReentrantLock</code>，一次只能允许一个线程访问一个资源，但是信号量可以使得<strong>多个线程，同时访问一个资源</strong>。</p>
+<h3 id="1-1-构造函数"><a href="#1-1-构造函数" class="headerlink" title="1.1 构造函数"></a>1.1 构造函数</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Semaphore</span><span class="params">(<span class="keyword">int</span> permits)</span></span>&#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Semaphore</span><span class="params">(<span class="keyword">int</span> permits, <span class="keyword">boolean</span> fair)</span></span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><code>permits</code>：能同时申请多少个信号量，主要用来控制线程的并发数量，即同时有多少个线程可以访问资源；</li>
+<li><code>fair</code>：是否公平，若<code>true</code>的话，下次执行的会是先进去等待的线程（先入先出）;</li>
+</ol>
+<h3 id="1-2-主要方法"><a href="#1-2-主要方法" class="headerlink" title="1.2 主要方法"></a>1.2 主要方法</h3><ol>
+<li><code>acquire()</code>：获取许可执行，若无法获得，会持续等待，直到线程释放一个许可；</li>
+<li><code>tryAcquire()</code>：尝试获得准入许可，得到返回<code>true</code>，没有返回<code>false</code>，不会持续等待；</li>
+<li><code>tryAcquire(long timeout, TimeUnit unit)</code>：与<code>tryAcquire()</code>类似，但是会有一个等待的时间，超过时间立即返回；</li>
+<li><code>release()</code>：释放许可，让其他线程获取许可执行。</li>
+</ol>
+<p>显然这个功能可以用于<strong>资源访问控制</strong>或者是<strong>限流</strong>的操作。</p>
+<h2 id="二、Semaphore的使用"><a href="#二、Semaphore的使用" class="headerlink" title="二、Semaphore的使用"></a>二、<code>Semaphore</code>的使用</h2><p>首先，我们考虑下<code>Semaphore</code>是用来解决哪类问题的？</p>
+<h3 id="2-1-CyclicBarrier和CountDownLatch无法解决的场景"><a href="#2-1-CyclicBarrier和CountDownLatch无法解决的场景" class="headerlink" title="2.1 CyclicBarrier和CountDownLatch无法解决的场景"></a>2.1 <code>CyclicBarrier</code>和<code>CountDownLatch</code>无法解决的场景</h3><p>前面我们已经介绍了<code>CyclicBarrier</code>和<code>CountDownLatch</code>，有哪些场景是这两个还无法解决的。</p>
+<ul>
+<li>场景一：抢车位</li>
+</ul>
+<p>无论是景区、商场还是住宅小区，停车场中的车位数量是一定的。当车位满了以后，想要进入停车场停车的车辆只能等待。等到其他车辆出来之后，才可以进入，即每个车辆必须只能停在其中一个位置上(互斥使用的)。</p>
+<ul>
+<li>场景二：海底捞吃火锅</li>
+</ul>
+<p>去海底捞吃火锅的时候，餐厅餐桌数量是固定的，假设有<code>3</code>桌。现在来了<code>10</code>桌客人，那么其他客人就需要在门口候餐区等待。当有其他桌吃完离开之后，进去一个。</p>
+<ul>
+<li><p><code>CyclicBarrier</code>和<code>CountDownLatch</code> 能否解决当前问题？</p>
+<ol>
+<li>根据<code>CountDownLatch</code>的特性：只能使用一次，这两种场景当然不能使用；</li>
+<li><code>CyclicBarrier</code>：虽然可以使用多次，但是需要<code>reset()</code>之后才可以多次使用。意思就是：<strong>只有等餐厅里面<code>3</code>个桌的客人都吃完之后，才可以让其他人进来就餐的</strong>，显然也是不符合业务逻辑的。</li>
+</ol>
+</li>
+</ul>
+<h3 id="2-2-代码实战"><a href="#2-2-代码实战" class="headerlink" title="2.2 代码实战"></a>2.2 代码实战</h3><blockquote>
+<p>以下代码以海底捞等位吃饭为例，即吃完一桌放一桌客人进来。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SemaphoreDemo</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 假设有十桌客人准备就餐</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> tableCount = <span class="number">10</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="comment">// 信号量，即餐厅只有3桌，仅能提供3桌客人同时就餐</span></span><br><span class="line">        Semaphore semaphore = <span class="keyword">new</span> Semaphore(<span class="number">3</span>, <span class="keyword">true</span>);</span><br><span class="line">        Long startTime = System.currentTimeMillis();</span><br><span class="line">        <span class="comment">// 计数器，计算什么时候全部就餐结束</span></span><br><span class="line">        CountDownLatch countDownLatch = <span class="keyword">new</span> CountDownLatch(tableCount);</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= tableCount; i++) &#123;</span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">int</span> count = i;</span><br><span class="line">            Thread thread = <span class="keyword">new</span> Thread(() -&gt; &#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    <span class="comment">// 获取资源，开始处理</span></span><br><span class="line">                    semaphore.acquire();</span><br><span class="line">                    System.out.println(<span class="string">"第"</span> + count + <span class="string">"批桌客人开始就餐"</span>);</span><br><span class="line">                    TimeUnit.SECONDS.sleep(<span class="keyword">new</span> Random().nextInt(<span class="number">5</span>));</span><br><span class="line">                    System.out.println(<span class="string">"第"</span> + count + <span class="string">"批桌客人就餐结束"</span>);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                    <span class="comment">// 处理结束，资源释放</span></span><br><span class="line">                    semaphore.release();</span><br><span class="line">                    countDownLatch.countDown();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;, <span class="string">"线程"</span> + i);</span><br><span class="line">            thread.start();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 等待全部客人就餐结束</span></span><br><span class="line">        countDownLatch.await();</span><br><span class="line">        System.out.println(<span class="string">"所有客人就餐完毕，总耗时"</span> + (System.currentTimeMillis() - startTime) + <span class="string">"毫秒"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>首先我们申明了信号量为<code>3</code>，那么同时就可以有<code>3</code>个线程进入到临界区中;</li>
+<li>当后续线程使用<code>acquire()</code>时候申请信号量，也必须有线程通过<code>release()</code>释放信号量。如果不释放，就意没有线程能进入。</li>
+</ol>
+<ul>
+<li>结果打印如下</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">第1批桌客人开始就餐</span><br><span class="line">第3批桌客人开始就餐</span><br><span class="line">第2批桌客人开始就餐</span><br><span class="line">第1批桌客人就餐结束</span><br><span class="line">第4批桌客人开始就餐</span><br><span class="line">第2批桌客人就餐结束</span><br><span class="line">第5批桌客人开始就餐</span><br><span class="line">第3批桌客人就餐结束</span><br><span class="line">第6批桌客人开始就餐</span><br><span class="line">第4批桌客人就餐结束</span><br><span class="line">第7批桌客人开始就餐</span><br><span class="line">第7批桌客人就餐结束</span><br><span class="line">第8批桌客人开始就餐</span><br><span class="line">第8批桌客人就餐结束</span><br><span class="line">第5批桌客人就餐结束</span><br><span class="line">第6批桌客人就餐结束</span><br><span class="line">第10批桌客人开始就餐</span><br><span class="line">第10批桌客人就餐结束</span><br><span class="line">第9批桌客人开始就餐</span><br><span class="line">第9批桌客人就餐结束</span><br><span class="line">所有客人就餐完毕，总耗时7060毫秒</span><br></pre></td></tr></table></figure>
+
+<p>从运行结果中，仅当有一个离开餐桌下一位才能进入餐厅就餐，达到我们预期。</p>
+<h3 id="2-3-使用注意点"><a href="#2-3-使用注意点" class="headerlink" title="2.3 使用注意点"></a>2.3 使用注意点</h3><p>在使用<code>acquire()</code>获取资源，并处理结束后，需要在<code>finally</code>里面调用<code>release()</code>方法进行释放资源，如果不能正常释放资源，会导致<strong>信号量泄漏</strong>。</p>
+<p><a href="https://github.com/vanDusty/JDK/tree/master/JDK-JUC/src/main/java/cn/van/jdk/juc/semaphore" target="_blank" rel="noopener">【Github 示例源码】</a></p>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>JDK</category>
+        <category>并发编程</category>
+      </categories>
+      <tags>
+        <tag>JUC</tag>
+        <tag>并发编程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>【并发编程】JUC之CyclicBarrier</title>
+    <url>/2020/05/02/da9c61f3.html</url>
+    <content><![CDATA[<p><code>CyclicBarrier</code> 是一种多线程并发控制工具，与<code>CountDownLatch</code>非常类似。它可以让一组线程到达栅栏时被阻塞，直到最后一个线程到达，才放行通过。比如斗地主，需要等待所有玩家进度条 <code>100%</code> 了，才能进入游戏。</p>
+<a id="more"></a>
+
+
+<h2 id="一、CyclicBarrier"><a href="#一、CyclicBarrier" class="headerlink" title="一、CyclicBarrier"></a>一、<code>CyclicBarrier</code></h2><h3 id="1-1-构造函数"><a href="#1-1-构造函数" class="headerlink" title="1.1 构造函数"></a>1.1 构造函数</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">CyclicBarrier</span><span class="params">(<span class="keyword">int</span> parties)</span> </span>&#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">CyclicBarrier</span><span class="params">(<span class="keyword">int</span> parties, Runnable barrierAction)</span> </span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><code>parties</code>：阻塞的线程数量，每个线程使用<code>await()</code>方法告诉<code>CyclicBarrier</code>我已经到达了屏障，然后当前线程被阻塞；</li>
+<li><code>barrierAction</code>：当最后一个线程到达是先执行这个任务，再去执行后面的流程(优先执行<code>barrierAction</code>，再执行主流程，方便处理更复杂的业务场景)。</li>
+</ol>
+<h3 id="1-2-主要方法"><a href="#1-2-主要方法" class="headerlink" title="1.2 主要方法"></a>1.2 主要方法</h3><ol>
+<li><code>int await()</code>：当前线程到达栅栏点等待，<code>parties</code>数目<code>-1</code>。注意：<strong>调用次数要和入参数量一致，否则会一直阻塞的等待</strong>；</li>
+<li><code>int getParties()</code>：返回设置屏障外的线程数；</li>
+<li><code>void reset()</code>：将屏障外的线程数重置，如果还有其他线程正在屏障等待，则会抛出<code>BrokenBarrierException</code>。</li>
+</ol>
+<h2 id="二、CyclicBarrier的使用"><a href="#二、CyclicBarrier的使用" class="headerlink" title="二、CyclicBarrier的使用"></a>二、<code>CyclicBarrier</code>的使用</h2><p><code>CyclicBarrier</code>用于使线程彼此等待，当不同的线程分别处理计算中的一部分服务，并且当所有线程都完成执行的时候，使用它，也就是说当多个线程执行不同的子任务并且需要组合这些子任务的输出来形成最终的输出，可以使用<code>CyclicBarrier</code>。完成执行后，线程调用<code>await()</code>方法并且等待其他线程到达栅栏。一旦所有的线程到达，<code>CyclicBarrier</code>就会为线程提供方法。</p>
+<h3 id="2-1-CyclicBarrier应用场景例子"><a href="#2-1-CyclicBarrier应用场景例子" class="headerlink" title="2.1 CyclicBarrier应用场景例子"></a>2.1 <code>CyclicBarrier</code>应用场景例子</h3><p>接下来模拟斗地主玩家的载入：地主玩家初始化游戏、贫民玩家1初始化游戏和贫民玩家2初始化游戏都进行完成后才能进入游戏。</p>
+<ul>
+<li>【地主玩家】初始化游戏</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LandlordPlayer</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> CyclicBarrier cyclicBarrier;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">LandlordPlayer</span><span class="params">(CyclicBarrier cyclicBarrier)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.cyclicBarrier = cyclicBarrier;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 地主玩家初始化游戏需要2秒</span></span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">2</span>);</span><br><span class="line">            logger.info(<span class="string">"【地主玩家】进入游戏"</span>);</span><br><span class="line">            cyclicBarrier.await();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException | BrokenBarrierException e) &#123;</span><br><span class="line">            logger.info(<span class="string">"【地主玩家】进入游戏失败！"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>【贫民玩家1】初始化游戏</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FarmerPlayer1</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> CyclicBarrier cyclicBarrier;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">FarmerPlayer1</span><span class="params">(CyclicBarrier cyclicBarrier)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.cyclicBarrier = cyclicBarrier;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 贫民玩家1玩家初始化游戏需要3秒</span></span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">3</span>);</span><br><span class="line">            logger.info(<span class="string">"【贫民玩家1】进入游戏"</span>);</span><br><span class="line">            cyclicBarrier.await();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException | BrokenBarrierException e) &#123;</span><br><span class="line">            logger.info(<span class="string">"【贫民玩家1】进入游戏失败"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>【贫民玩家2】初始化游戏</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FarmerPlayer2</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> CyclicBarrier cyclicBarrier;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">FarmerPlayer2</span><span class="params">(CyclicBarrier cyclicBarrier)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.cyclicBarrier = cyclicBarrier;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 贫民玩家2玩家初始化游戏需要3秒</span></span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">3</span>);</span><br><span class="line">            logger.info(<span class="string">"【贫民玩家2】进入游戏"</span>);</span><br><span class="line">            cyclicBarrier.await();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException | BrokenBarrierException e) &#123;</span><br><span class="line">            logger.info(<span class="string">"【贫民玩家2】进入游戏失败！"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>游戏加载流程</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CyclicBarrierTest</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">cyclicBarrierDemo</span><span class="params">()</span> <span class="keyword">throws</span> BrokenBarrierException, InterruptedException </span>&#123;</span><br><span class="line">        Long startTime = System.currentTimeMillis();</span><br><span class="line">        <span class="comment">// 4个是因为还有一个主线程也在等待</span></span><br><span class="line">        logger.info(<span class="string">"所有玩家就绪，准备进入游戏"</span>);</span><br><span class="line">        CyclicBarrier cyclicBarrier = <span class="keyword">new</span> CyclicBarrier(<span class="number">4</span>, <span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                logger.info(<span class="string">"所有玩家进度条100%，游戏读取中。。。。"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="comment">// 注意：初始化线程数量（如果线程数少于所需线程，则会阻塞）</span></span><br><span class="line">        Executor executor = Executors.newFixedThreadPool(<span class="number">3</span>);</span><br><span class="line">        executor.execute(<span class="keyword">new</span> LandlordPlayer(cyclicBarrier));</span><br><span class="line">        executor.execute(<span class="keyword">new</span> FarmerPlayer2(cyclicBarrier));</span><br><span class="line">        executor.execute(<span class="keyword">new</span> FarmerPlayer1(cyclicBarrier));</span><br><span class="line">        cyclicBarrier.await();</span><br><span class="line">        <span class="comment">// 模拟游戏读取需要 1 秒</span></span><br><span class="line">        TimeUnit.SECONDS.sleep(<span class="number">1</span>);</span><br><span class="line">        logger.info(<span class="string">"游戏加载成功，耗时[&#123;&#125;]毫秒，开始游戏...."</span>, System.currentTimeMillis() - startTime);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>结果打印如下</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">17:12:01.324 [main] ... - 所有玩家就绪，准备进入游戏</span><br><span class="line">17:12:03.337 [pool-1-thread-1] ... - 【地主玩家】进入游戏</span><br><span class="line">17:12:04.338 [pool-1-thread-3] ... - 【贫民玩家1】进入游戏</span><br><span class="line">17:12:04.338 [pool-1-thread-2] ... - 【贫民玩家2】进入游戏</span><br><span class="line">17:12:04.338 [pool-1-thread-2] ... - 所有玩家进度条100%，游戏读取中。。。。</span><br><span class="line">17:12:05.342 [main] ... - 游戏加载成功，耗时[4020]毫秒，开始游戏....</span><br></pre></td></tr></table></figure>
+
+<p>由于多线程并发使各个玩家同时加载，整个游戏加载耗时 <code>4020</code> 毫秒，效率比较高。</p>
+<h3 id="2-2-使用注意点"><a href="#2-2-使用注意点" class="headerlink" title="2.2 使用注意点"></a>2.2 使用注意点</h3><ol>
+<li>相较于<code>CountDownLatch</code>，<code>CyclicBarrier</code> 可以重复使用，因为会去刷新 count 的数量；</li>
+<li><code>await()</code>调用次数要和入参数量一致，否则会一直阻塞的等待。</li>
+</ol>
+<h3 id="2-3-CyclicBarrier和CountDownLatch的区别"><a href="#2-3-CyclicBarrier和CountDownLatch的区别" class="headerlink" title="2.3 CyclicBarrier和CountDownLatch的区别"></a>2.3 <code>CyclicBarrier</code>和<code>CountDownLatch</code>的区别</h3><ol>
+<li><code>CountDownLatch</code>的计数器只能使用一次，而<code>CyclicBarrier</code>的计数器可以使用<code>reset()</code>方法重置，可以使用多次，所以<code>CyclicBarrier</code>能够处理更为复杂的场景；</li>
+<li><code>CyclicBarrier</code>还提供了一些其他有用的方法，比如<code>getNumberWaiting()</code>方法可以获得<code>CyclicBarrier</code>阻塞的线程数量，<code>isBroken()</code>方法用来了解阻塞的线程是否被中断；</li>
+<li><code>CountDownLatch</code>是只阻塞主线程，所有子线程全部执行完毕之后唤醒主线程去执行；而<code>CyclicBarrier</code>则是所有线程到达栅栏点都会阻塞等待，直到后一个到达才唤醒所有的阻塞线程。</li>
+</ol>
+<p><a href="https://github.com/vanDusty/JDK/tree/master/JDK-JUC/src/main/java/cn/van/jdk/juc/cyclicbarrier" target="_blank" rel="noopener">【Github 示例源码】</a></p>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>JDK</category>
+        <category>并发编程</category>
+      </categories>
+      <tags>
+        <tag>JUC</tag>
+        <tag>并发编程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>【并发编程】JUC之CountDownLatch</title>
+    <url>/2020/05/01/a99f8c04.html</url>
+    <content><![CDATA[<blockquote>
+<p>当 <code>N</code> 个线程同时完成某项任务时，如何知道他们都已经执行完毕了。</p>
+</blockquote>
+<a id="more"></a>
+
+
+<h2 id="一、CountDownLatch"><a href="#一、CountDownLatch" class="headerlink" title="一、CountDownLatch"></a>一、<code>CountDownLatch</code></h2><p><code>CountDownLatch</code> 是 <code>JDK 1.5</code>开始<code>concurrent</code>包里提供的，并发编程工具类。<br>可以把 <code>CountDownLatch</code> 看作一个多线程控制工具类，用于协调多个线程的同步，能让一个线程在等待其他线程执行完任务后，再继续执行。内部是通过一个计数器去完成实现。</p>
+<h3 id="1-1-构造函数"><a href="#1-1-构造函数" class="headerlink" title="1.1 构造函数"></a>1.1 构造函数</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">CountDownLatch</span><span class="params">(<span class="keyword">int</span> count)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (count &lt; <span class="number">0</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"count &lt; 0"</span>);</span><br><span class="line">    <span class="keyword">this</span>.sync = <span class="keyword">new</span> Sync(count);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>count</code>代表需要执行的线程数量,也是同步计数器初始化的数量，只有当同步计数值为<code>0</code>，主线程才会向下执行。</p>
+<h3 id="1-2-主要方法"><a href="#1-2-主要方法" class="headerlink" title="1.2 主要方法"></a>1.2 主要方法</h3><ol>
+<li><code>void await()</code>：调用改方法的线程会被挂起，直到<code>count</code>值为<code>0</code>;</li>
+<li><code>boolean await(long timeout, TimeUnit unit)</code>：与上面的类似，只不过等待一定的时间后<code>count</code>值还没变为<code>0</code>的话就会继续执行;</li>
+<li><code>void countDown()</code>：在计数值 <code>&gt; 0</code>的情况下，每当一个线程完成任务，计数减去<code>1</code>;</li>
+<li><code>long getCount()</code>：获取计数器的值。</li>
+</ol>
+<blockquote>
+<p>当计数器应该为<code>0</code>，所有的线程执行完自己的任务。在<code>CountDownLatch</code>等待的线程，可以继续执行的任务。</p>
+</blockquote>
+<h2 id="二、CountDownLatch的使用"><a href="#二、CountDownLatch的使用" class="headerlink" title="二、CountDownLatch的使用"></a>二、<code>CountDownLatch</code>的使用</h2><p>适用于一个任务的执行需要等待其他任务执行完毕，方可执行的场景。</p>
+<blockquote>
+<p><code>CountDownLatch</code>是一次性的，只能通过构造方法设置初始计数量，计数完了无法进行复位，不能达到复用。</p>
+</blockquote>
+<h3 id="2-1-CountDownLatch应用场景例子"><a href="#2-1-CountDownLatch应用场景例子" class="headerlink" title="2.1 CountDownLatch应用场景例子"></a>2.1 <code>CountDownLatch</code>应用场景例子</h3><p>丈夫和妻子一块儿去买菜，假设买蔬菜需要<code>5</code>秒，买肉需要<code>3</code>秒，如果丈夫和妻子分开去买，然后一块儿回家。</p>
+<ul>
+<li>妻子去蔬菜</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WifeTask</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> CountDownLatch countDownLatch;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">WifeTask</span><span class="params">(CountDownLatch countDownLatch)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.countDownLatch = countDownLatch;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 买蔬菜需要5秒</span></span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">5</span>);</span><br><span class="line">            logger.info(<span class="string">"妻子蔬菜买好了"</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            logger.info(<span class="string">"妻子蔬菜没买到"</span>);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (countDownLatch != <span class="keyword">null</span>) &#123;</span><br><span class="line">                countDownLatch.countDown();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>丈夫去买肉</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HusbandTask</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> CountDownLatch countDownLatch;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">HusbandTask</span><span class="params">(CountDownLatch countDownLatch)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.countDownLatch = countDownLatch;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 买肉需要3秒</span></span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">3</span>);</span><br><span class="line">            logger.info(<span class="string">"丈夫肉买好了"</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            logger.info(<span class="string">"丈夫肉没买到"</span>);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (countDownLatch != <span class="keyword">null</span>) &#123;</span><br><span class="line">                countDownLatch.countDown();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>买好菜，在指定地点集合回家（回到主线程），计算耗时</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CountDownLatchTest</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Logger logger = LoggerFactory.getLogger(getClass());</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">countDownLatchDemo</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        Long startTime = System.currentTimeMillis();</span><br><span class="line">        CountDownLatch countDownLatch = <span class="keyword">new</span> CountDownLatch(<span class="number">2</span>);</span><br><span class="line">        logger.info(<span class="string">"夫妻分头去买菜"</span>);</span><br><span class="line">        <span class="comment">// 夫妻分头去买菜，夫妻买蔬菜(需要5秒)，丈夫卖肉(需要3秒)</span></span><br><span class="line">        Executor executor = Executors.newFixedThreadPool(<span class="number">2</span>);</span><br><span class="line">        executor.execute(<span class="keyword">new</span> HusbandTask(countDownLatch));</span><br><span class="line">        executor.execute(<span class="keyword">new</span> WifeTask(countDownLatch));</span><br><span class="line">        <span class="comment">// 挂起任务，等菜买好了再一起回家</span></span><br><span class="line">        countDownLatch.await();</span><br><span class="line">        logger.info(<span class="string">"菜买好了，夫妻双双把家还，买菜合计耗时:&#123;&#125;毫秒"</span>, (System.currentTimeMillis() - startTime));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>结果打印如下</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">21:36:42.964 ... - 夫妻分头去买菜</span><br><span class="line">21:36:45.973 ... - 丈夫肉买好了</span><br><span class="line">21:36:47.972 ... - 妻子蔬菜买好了</span><br><span class="line">21:36:47.973 ... - 菜买好了，夫妻双双把家还，买菜合计耗时:5011毫秒</span><br></pre></td></tr></table></figure>
+
+<p>通过<code>CountDownLatch</code>初始化计数器值为<code>2</code>，让夫妻两人各自去买菜，完成一项，计数器值减<code>1</code>，都买好后，计数器值为<code>0</code>，回到主线程，一起回家。</p>
+<h3 id="2-2-CountDownLatch使用以及注意点"><a href="#2-2-CountDownLatch使用以及注意点" class="headerlink" title="2.2 CountDownLatch使用以及注意点"></a>2.2 <code>CountDownLatch</code>使用以及注意点</h3><ol>
+<li>一旦<code>count</code>达到零，不能再用<code>CountDownLatch</code>(即不可复用)。</li>
+<li>主线程通过调用<code>CountDownLatch.await()</code>方法等待<code>Latch</code>，而其他线程调用<code>CountDownLatch.countDown()</code>以通知它们已完成。</li>
+<li>计数器必须和要执行的线程数匹配，如果计数器大于了要执行的线程数目，那么<code>count</code>最后不会为<code>0</code>，调用的主线程也不会继续执行，主线程将会一直处于等待状态。</li>
+</ol>
+<p><a href="https://github.com/vanDusty/JDK/tree/master/JDK-JUC/src/main/java/cn/van/jdk/juc/countdownlatch" target="_blank" rel="noopener">【Github 示例源码】</a></p>
+<blockquote>
+<p>更多 <code>Java</code> 笔记，详见<a href="https://github.com/vanDusty/Java-Note" target="_blank" rel="noopener">【Java 知识笔记本】</a>，欢迎提供想法建议。</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>JDK</category>
+        <category>并发编程</category>
+      </categories>
+      <tags>
+        <tag>JUC</tag>
+        <tag>并发编程</tag>
       </tags>
   </entry>
   <entry>
