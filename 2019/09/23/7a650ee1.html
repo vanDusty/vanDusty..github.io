@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.dusty.vip","root":"/","scheme":"Pisces","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="本案例主要讲解Redis实现分布式锁的两种实现方式：Jedis实现、Redisson实现。网上关于这方面讲解太多了，Van自认为文笔没他们好，还是用示例代码说明。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="以商品超卖为例讲解分布式锁">
+<meta property="og:url" content="https://www.dusty.vip/2019/09/23/7a650ee1.html">
+<meta property="og:site_name" content="风尘博客">
+<meta property="og:description" content="本案例主要讲解Redis实现分布式锁的两种实现方式：Jedis实现、Redisson实现。网上关于这方面讲解太多了，Van自认为文笔没他们好，还是用示例代码说明。">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/9/22/16d5954bbfcd6d44?w=1098&h=380&f=png&s=168694">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/9/22/16d595509316deb1?w=1092&h=492&f=png&s=201895">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/9/22/16d59556925bf3ad?w=926&h=270&f=png&s=96527">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/9/22/16d5955af6a8149c?w=1322&h=810&f=png&s=561586">
+<meta property="article:published_time" content="2019-09-23T14:49:17.000Z">
+<meta property="article:modified_time" content="2020-04-22T07:02:07.399Z">
+<meta property="article:author" content="Van">
+<meta property="article:tag" content="Redis">
+<meta property="article:tag" content="分布式锁">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://user-gold-cdn.xitu.io/2019/9/22/16d5954bbfcd6d44?w=1098&h=380&f=png&s=168694">
+
+<link rel="canonical" href="https://www.dusty.vip/2019/09/23/7a650ee1.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>以商品超卖为例讲解分布式锁 | 风尘博客</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?ddcd15db9f34dd2fff4f8efe4962cd1c";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">风尘博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">风尘博客</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/vanDusty" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/09/23/7a650ee1.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          以商品超卖为例讲解分布式锁
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-23 22:49:17" itemprop="dateCreated datePublished" datetime="2019-09-23T22:49:17+08:00">2019-09-23</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">分布式</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>11k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>21 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>本案例主要讲解<code>Redis</code>实现分布式锁的两种实现方式：<code>Jedis</code>实现、<code>Redisson</code>实现。网上关于这方面讲解太多了，Van自认为文笔没他们好，还是用示例代码说明。</p>
+</blockquote>
+<a id="more"></a>
+
+<h1 id="一、jedis-实现"><a href="#一、jedis-实现" class="headerlink" title="一、jedis 实现"></a>一、<code>jedis</code> 实现</h1><blockquote>
+<p>该方案只考虑<code>Redis</code>单机部署的场景</p>
+</blockquote>
+<h2 id="1-1-加锁"><a href="#1-1-加锁" class="headerlink" title="1.1 加锁"></a>1.1 加锁</h2><h3 id="1-1-1-原理"><a href="#1-1-1-原理" class="headerlink" title="1.1.1 原理"></a>1.1.1 原理</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jedis.set(String key, String value, String nxxx, String expx, <span class="keyword">int</span> time)</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><code>key</code>: 使用<code>key</code>来当锁，因为<code>key</code>是唯一的;</li>
+<li><code>value</code>: 我传的是唯一值（<code>UUID</code>），很多童鞋可能不明白，有<code>key</code>作为锁不就够了吗，为什么还要用到<code>value</code>？原因是分布式锁要满足<strong>解铃还须系铃人</strong>：通过给<code>value</code>赋值为<code>requestId</code>，我们就知道这把锁是哪个请求加的了，在解锁的时候要验证<code>value</code>值，不能误解锁;</li>
+<li><code>nxxx</code>: 这个参数我填的是<code>NX</code>，意思是<code>SET IF NOT EXIST</code>，即当<code>key</code>不存在时，我们进行<code>set</code>操作；若<code>key</code>已经存在，则不做任何操作；</li>
+<li><code>expx</code>: 这个参数我传的是<code>PX</code>，意思是我们要给这个<code>key</code>加一个过期的设置，具体时间由第五个参数决定;</li>
+<li><code>time</code>: 与第四个参数相呼应，代表<code>key</code>的过期时间。</li>
+</ol>
+<h3 id="1-1-2-小结"><a href="#1-1-2-小结" class="headerlink" title="1.1.2 小结"></a>1.1.2 小结</h3><ul>
+<li><code>set()</code>加入了<code>NX</code>参数，可以保证如果已有<code>key</code>存在，则函数不会调用成功，也就是只有一个客户端能持有锁，满足互斥性;</li>
+<li>其次，由于我们对锁设置了过期时间，即使锁的持有者后续发生崩溃而没有解锁，锁也会因为到了过期时间而自动解锁（即<code>key</code>被删除），不会发生死锁;</li>
+<li>最后，因为我们将<code>value</code>赋值为<code>requestId</code>，代表加锁的客户端请求标识，那么在客户端在解锁的时候就可以进行校验是否是同一个客户端。</li>
+</ul>
+<h2 id="1-2-释放锁"><a href="#1-2-释放锁" class="headerlink" title="1.2 释放锁"></a>1.2 释放锁</h2><blockquote>
+<p>释放锁时需要验证<code>value</code>值，也就是说我们在获取锁的时候需要设置一个<code>value</code>，不能直接用<code>del key</code>这种粗暴的方式，因为直接<code>del key</code>任何客户端都可以进行解锁了，所以解锁时，我们需要判断锁是否是自己的(基于<code>value</code>值来判断)</p>
+</blockquote>
+<ol>
+<li>首先,写了一个简单<code>Lua</code>脚本代码,作用是：获取锁对应的<code>value</code>值，检查是否与<code>requestId</code>相等，如果相等则删除锁（解锁）;</li>
+<li>然后,将<code>Lua</code>代码传到<code>jedis.eval()</code>方法里，并使参数<code>KEYS[1]</code>赋值为<code>lockKey</code>，<code>ARGV[1]</code>赋值为<code>requestId</code>。<code>eval()</code>方法是将<code>Lua</code>代码交给Redis服务端执行。</li>
+</ol>
+<h2 id="1-3-案例（家庭多人领取奖励的场景）"><a href="#1-3-案例（家庭多人领取奖励的场景）" class="headerlink" title="1.3 案例（家庭多人领取奖励的场景）"></a>1.3 案例（家庭多人领取奖励的场景）</h2><blockquote>
+<p>这里放出的是关键代码，详细可运行的代码可至文末地址下载示例代码。</p>
+</blockquote>
+<h3 id="1-3-1-准备"><a href="#1-3-1-准备" class="headerlink" title="1.3.1 准备"></a>1.3.1 准备</h3><p>该案例模拟家庭内多人通过领取一个奖励，但是只能有一个人能领取成功，不能重复领取（之前做过奖励模块的需求）</p>
+<ul>
+<li><code>family_reward_record</code>表</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`family_reward_record`</span> (</span><br><span class="line">  <span class="string">`id`</span> <span class="built_in">bigint</span>(<span class="number">10</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT <span class="keyword">COMMENT</span> <span class="string">'主键id'</span>,</span><br><span class="line">  <span class="string">`family_id`</span> <span class="built_in">bigint</span>(<span class="number">20</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">'0'</span> <span class="keyword">COMMENT</span> <span class="string">'商品名称'</span>,</span><br><span class="line">  <span class="string">`reward_type`</span> <span class="built_in">int</span>(<span class="number">10</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">'1'</span> <span class="keyword">COMMENT</span> <span class="string">'商品库存数量'</span>,</span><br><span class="line">  <span class="string">`state`</span> <span class="built_in">int</span>(<span class="number">1</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">'0'</span> <span class="keyword">COMMENT</span> <span class="string">'商品状态'</span>,</span><br><span class="line">  <span class="string">`create_time`</span> <span class="built_in">timestamp</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span> <span class="keyword">COMMENT</span> <span class="string">'入库时间'</span>,</span><br><span class="line">  <span class="string">`update_time`</span> <span class="built_in">timestamp</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="keyword">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>)</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> AUTO_INCREMENT=<span class="number">270</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8mb4 <span class="keyword">COLLATE</span>=utf8mb4_unicode_ci <span class="keyword">COMMENT</span>=<span class="string">'家庭领取奖励表（家庭内多人只能有一个人能领取成功，不能重复领取）'</span>;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>application.yml</code></li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">spring:</span><br><span class="line">  datasource:</span><br><span class="line">    url: jdbc:mysql://47.98.178.84:3306/dev</span><br><span class="line">    username: dev</span><br><span class="line">    password: password</span><br><span class="line">    driver-class-name: com.mysql.jdbc.Driver</span><br><span class="line">  redis:</span><br><span class="line">    host: 47.98.178.84</span><br><span class="line">    port: 6379</span><br><span class="line">    password: password</span><br><span class="line">    timeout: 2000</span><br><span class="line"># mybatis</span><br><span class="line">mybatis:</span><br><span class="line">  mapper-locations: classpath:mapper/*.xml</span><br><span class="line">  type-aliases-package: cn.van.mybatis.demo.entity</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-3-2-核心实现"><a href="#1-3-2-核心实现" class="headerlink" title="1.3.2 核心实现"></a>1.3.2 核心实现</h3><ul>
+<li>Jedis 单机配置类 - <code>RedisConfig.java</code></li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RedisConfig</span> <span class="keyword">extends</span> <span class="title">CachingConfigurerSupport</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Value</span>(<span class="string">"$&#123;spring.redis.host&#125;"</span>)</span><br><span class="line">    <span class="keyword">private</span> String host;</span><br><span class="line">    <span class="meta">@Value</span>(<span class="string">"$&#123;spring.redis.port&#125;"</span>)</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> port;</span><br><span class="line">    <span class="meta">@Value</span>(<span class="string">"$&#123;spring.redis.password&#125;"</span>)</span><br><span class="line">    <span class="keyword">private</span> String password;</span><br><span class="line">    <span class="meta">@Value</span>(<span class="string">"$&#123;spring.redis.timeout&#125;"</span>)</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> timeout;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> JedisPool <span class="title">redisPoolFactory</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        JedisPoolConfig jedisPoolConfig = <span class="keyword">new</span> JedisPoolConfig();</span><br><span class="line">        <span class="keyword">if</span> (StringUtils.isEmpty(password)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> JedisPool(jedisPoolConfig, host, port, timeout);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> JedisPool(jedisPoolConfig, host, port, timeout, password);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span>(name = <span class="string">"redisTemplate"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> RedisTemplate&lt;String, Object&gt; <span class="title">redisTemplate</span><span class="params">(RedisConnectionFactory redisConnectionFactory)</span> </span>&#123;</span><br><span class="line">        RedisTemplate&lt;String, Object&gt; redisTemplate = <span class="keyword">new</span> RedisTemplate();</span><br><span class="line">        redisTemplate.setConnectionFactory(redisConnectionFactory);</span><br><span class="line"></span><br><span class="line">        ObjectMapper objectMapper = <span class="keyword">new</span> ObjectMapper();</span><br><span class="line">        objectMapper.setVisibility(PropertyAccessor.ALL, Visibility.ANY);</span><br><span class="line">        objectMapper.enableDefaultTyping(DefaultTyping.NON_FINAL);</span><br><span class="line"></span><br><span class="line">        Jackson2JsonRedisSerializer&lt;Object&gt; jsonRedisSerializer = <span class="keyword">new</span> Jackson2JsonRedisSerializer(Object<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        jsonRedisSerializer.setObjectMapper(objectMapper);</span><br><span class="line">        redisTemplate.setDefaultSerializer(jsonRedisSerializer);</span><br><span class="line"></span><br><span class="line">        redisTemplate.setKeySerializer(<span class="keyword">new</span> StringRedisSerializer());</span><br><span class="line">        redisTemplate.afterPropertiesSet();</span><br><span class="line">        <span class="keyword">return</span> redisTemplate;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>分布式锁工具类 - <code>RedisDistributedLock.java</code></li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RedisDistributedLock</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 成功获取锁标示</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String LOCK_SUCCESS = <span class="string">"OK"</span>;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 成功解锁标示</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Long RELEASE_SUCCESS = <span class="number">1L</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> JedisPool jedisPool;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * redis 数据存储过期时间</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> expireTime = <span class="number">500</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 尝试获取分布式锁</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> lockKey 锁</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> lockValue 请求标识</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 是否获取成功</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">tryLock</span><span class="params">(String lockKey, String lockValue)</span> </span>&#123;</span><br><span class="line">        Jedis jedis = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            jedis = jedisPool.getResource();</span><br><span class="line">            String result = jedis.set(lockKey, lockValue, <span class="string">"NX"</span>, <span class="string">"PX"</span>, expireTime);</span><br><span class="line">            <span class="keyword">if</span> (LOCK_SUCCESS.equals(result)) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span>(jedis != <span class="keyword">null</span>)&#123;</span><br><span class="line">                jedis.close();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 释放分布式锁</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> lockKey 锁</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> lockValue 请求标识</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 是否释放成功</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">unLock</span><span class="params">(String lockKey, String lockValue)</span> </span>&#123;</span><br><span class="line">        Jedis jedis = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            jedis = jedisPool.getResource();</span><br><span class="line">            String script = <span class="string">"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end"</span>;</span><br><span class="line">            Object result = jedis.eval(script, Collections.singletonList(lockKey), Collections.singletonList(lockValue));</span><br><span class="line">            <span class="keyword">if</span> (RELEASE_SUCCESS.equals(result)) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span>(jedis != <span class="keyword">null</span>)&#123;</span><br><span class="line">                jedis.close();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>不加锁时：模拟 <code>familyId = 1</code> 的家庭同时领取奖励</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> HttpResult <span class="title">receiveAward</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Long familyId = <span class="number">1L</span>;</span><br><span class="line">    Map&lt;String, Object&gt; params = <span class="keyword">new</span> HashMap&lt;String, Object&gt;(<span class="number">16</span>);</span><br><span class="line">    params.put(<span class="string">"familyId"</span>, familyId);</span><br><span class="line">    params.put(<span class="string">"rewardType"</span>, <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">int</span> count = familyRewardRecordMapper.selectCountByFamilyIdAndRewardType(params);</span><br><span class="line">    <span class="keyword">if</span> (count == <span class="number">0</span>) &#123;</span><br><span class="line">        FamilyRewardRecordDO recordDO = <span class="keyword">new</span> FamilyRewardRecordDO(familyId,<span class="number">1</span>,<span class="number">0</span>,LocalDateTime.now());</span><br><span class="line">        <span class="keyword">int</span> num = familyRewardRecordMapper.insert(recordDO);</span><br><span class="line">        <span class="keyword">if</span> (num == <span class="number">1</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> HttpResult.success();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> HttpResult.failure(-<span class="number">1</span>, <span class="string">"记录插入失败"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> HttpResult.success(<span class="string">"该记录已存在"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>加锁的实现：模拟 <code>familyId = 2</code> 的家庭同时领取奖励</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> HttpResult <span class="title">receiveAwardLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Long familyId = <span class="number">2L</span>;</span><br><span class="line">    Map&lt;String, Object&gt; params = <span class="keyword">new</span> HashMap&lt;String, Object&gt;(<span class="number">16</span>);</span><br><span class="line">    params.put(<span class="string">"familyId"</span>, familyId);</span><br><span class="line">    params.put(<span class="string">"rewardType"</span>, <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">int</span> count = familyRewardRecordMapper.selectCountByFamilyIdAndRewardType(params);</span><br><span class="line">    <span class="keyword">if</span> (count == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">// 没有记录则创建领取记录</span></span><br><span class="line">        FamilyRewardRecordDO recordDO = <span class="keyword">new</span> FamilyRewardRecordDO(familyId,<span class="number">1</span>,<span class="number">0</span>,LocalDateTime.now());</span><br><span class="line">        <span class="comment">// 分布式锁的key(familyId + rewardType)</span></span><br><span class="line">        String lockKey = recordDO.getFamilyId() + <span class="string">"_"</span> + recordDO.getRewardType();</span><br><span class="line">        <span class="comment">// 分布式锁的value(唯一值)</span></span><br><span class="line">        String lockValue = createUUID();</span><br><span class="line">        <span class="keyword">boolean</span> lockStatus = redisLock.tryLock(lockKey, lockValue);</span><br><span class="line">        <span class="comment">// 锁被占用</span></span><br><span class="line">        <span class="keyword">if</span> (!lockStatus) &#123;</span><br><span class="line">            log.info(<span class="string">"锁已经占用了"</span>);</span><br><span class="line">            <span class="keyword">return</span> HttpResult.failure(-<span class="number">1</span>,<span class="string">"失败"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 不管多个请求，加锁之后，只会有一个请求能拿到锁，进行插入操作</span></span><br><span class="line">        log.info(<span class="string">"拿到了锁，当前时刻:&#123;&#125;"</span>,System.currentTimeMillis());</span><br><span class="line"></span><br><span class="line">        <span class="keyword">int</span> num = familyRewardRecordMapper.insert(recordDO);</span><br><span class="line">        <span class="keyword">if</span> (num != <span class="number">1</span>) &#123;</span><br><span class="line">            log.info(<span class="string">"数据插入失败！"</span>);</span><br><span class="line">            <span class="keyword">return</span> HttpResult.failure(-<span class="number">1</span>, <span class="string">"数据插入失败！"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        log.info(<span class="string">"数据插入成功！准备解锁..."</span>);</span><br><span class="line">        <span class="keyword">boolean</span> unLockState = redisLock.unLock(lockKey,lockValue);</span><br><span class="line">        <span class="keyword">if</span> (!unLockState) &#123;</span><br><span class="line">            log.info(<span class="string">"解锁失败！"</span>);</span><br><span class="line">            <span class="keyword">return</span> HttpResult.failure(-<span class="number">1</span>, <span class="string">"解锁失败！"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        log.info(<span class="string">"解锁成功！"</span>);</span><br><span class="line">        <span class="keyword">return</span> HttpResult.success();</span><br><span class="line">    &#125;</span><br><span class="line">    log.info(<span class="string">"该记录已存在"</span>);</span><br><span class="line">    <span class="keyword">return</span> HttpResult.success(<span class="string">"该记录已存在"</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> String <span class="title">createUUID</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    UUID uuid = UUID.randomUUID();</span><br><span class="line">    String str = uuid.toString().replace(<span class="string">"-"</span>, <span class="string">"_"</span>);</span><br><span class="line">    <span class="keyword">return</span> str;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-3-3-测试"><a href="#1-3-3-测试" class="headerlink" title="1.3.3 测试"></a>1.3.3 测试</h3><blockquote>
+<p>我采用的是<code>JMeter</code>工具进行测试，加锁和不加锁的情况都设置成：五次并发请求。 </p>
+</blockquote>
+<h4 id="1-3-3-1-不加锁"><a href="#1-3-3-1-不加锁" class="headerlink" title="1.3.3.1 不加锁"></a>1.3.3.1 不加锁</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 家庭成员领取奖励（不加锁）</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@PostMapping</span>(<span class="string">"/receiveAward"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> HttpResult <span class="title">receiveAward</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> redisLockService.receiveAward();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>请求方式：<code>POST</code></li>
+<li>请求地址：<a href="http://localhost:8080/redisLock/receiveAward" target="_blank" rel="noopener">http://localhost:8080/redisLock/receiveAward</a></li>
+<li>返回结果：插入了五条记录</li>
+</ul>
+<p><img src="https://user-gold-cdn.xitu.io/2019/9/22/16d5954bbfcd6d44?w=1098&h=380&f=png&s=168694" alt=""></p>
+<h4 id="1-3-3-2-加锁"><a href="#1-3-3-2-加锁" class="headerlink" title="1.3.3.2 加锁"></a>1.3.3.2 加锁</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 家庭成员领取奖励（加锁）</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@PostMapping</span>(<span class="string">"/receiveAwardLock"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> HttpResult <span class="title">receiveAwardLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> redisLockService.receiveAwardLock();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>请求方式：<code>POST</code></li>
+<li>请求地址：<a href="http://localhost:8080/redisLock/receiveAwardLock" target="_blank" rel="noopener">http://localhost:8080/redisLock/receiveAwardLock</a></li>
+<li>返回结果：只插入了一条记录</li>
+</ul>
+<p><img src="https://user-gold-cdn.xitu.io/2019/9/22/16d595509316deb1?w=1092&h=492&f=png&s=201895" alt=""></p>
+<blockquote>
+<p>通过对比，说明分布式锁起作用了。</p>
+</blockquote>
+<h2 id="1-4-小结"><a href="#1-4-小结" class="headerlink" title="1.4 小结"></a>1.4 小结</h2><p>我上家使用的就是这种加锁方式，看上去很OK，实际上在<code>Redis</code>集群的时候会出现问题，比如：</p>
+<p><code>A</code>客户端在<code>Redis</code>的<code>master</code>节点上拿到了锁，但是这个加锁的<code>key</code>还没有同步到<code>slave</code>节点，<code>master</code>故障，发生故障转移，一个<code>slave</code>节点升级为<code>master</code>节点，<code>B</code>客户端也可以获取同个<code>key</code>的锁，但客户端<code>A</code>也已经拿到锁了，这就导致多个客户端都拿到锁。</p>
+<p>正因为如此，<code>Redis</code>作者<code>antirez</code>基于分布式环境下提出了一种更高级的分布式锁的实现方式：<code>Redlock</code>。</p>
+<h1 id="二、Redlock实现"><a href="#二、Redlock实现" class="headerlink" title="二、Redlock实现"></a>二、<code>Redlock</code>实现</h1><h2 id="2-1-原理"><a href="#2-1-原理" class="headerlink" title="2.1 原理"></a>2.1 原理</h2><p><code>antirez</code>提出的<code>Redlock</code>算法大概是这样的：</p>
+<p>在<code>Redis</code>的分布式环境中，我们假设有<code>N</code>个<code>Redis master</code>。这些节点完全互相独立，不存在主从复制或者其他集群协调机制。我们确保将在<code>N</code>个实例上使用与在<code>Redis</code>单实例下相同方法获取和释放锁。现在我们假设有<code>5</code>个<code>Redis master</code>节点，同时我们需要在<code>5</code>台服务器上面运行这些<code>Redis</code>实例，这样保证他们不会同时都宕掉。</p>
+<h3 id="2-1-1-加锁"><a href="#2-1-1-加锁" class="headerlink" title="2.1.1 加锁"></a>2.1.1 加锁</h3><p>为了取到锁，客户端应该执行以下操作(<code>RedLock</code>算法加锁步骤):</p>
+<ol>
+<li>获取当前<code>Unix</code>时间，以毫秒为单位;</li>
+<li>依次尝试从<code>5</code>个实例，使用相同的<code>key</code>和具有唯一性的<code>value</code>（例如<code>UUID</code>）获取锁。当向<code>Redis</code>请求获取锁时，客户端应该设置一个网络连接和响应超时时间，这个超时时间应该小于锁的失效时间。例如你的锁自动失效时间为<code>10</code>秒，则超时时间应该在<code>5-50</code>毫秒之间。这样可以避免服务器端<code>Redis</code>已经挂掉的情况下，客户端还在死死地等待响应结果。如果服务器端没有在规定时间内响应，客户端应该尽快尝试去另外一个<code>Redis</code>实例请求获取锁;</li>
+<li>客户端使用当前时间减去开始获取锁时间（步骤<code>1</code>记录的时间）就得到获取锁使用的时间。当且仅当从大多数（<code>N/2+1</code>，这里是<code>3</code>个节点）的<code>Redis</code>节点都取到锁，并且使用的时间小于锁失效时间时，锁才算获取成功;</li>
+<li>如果取到了锁，<code>key</code>的真正有效时间等于有效时间减去获取锁所使用的时间（步骤<code>3</code>计算的结果）。</li>
+<li>如果因为某些原因，获取锁失败（没有在至少<code>N/2+1</code>个<code>Redis</code>实例取到锁或者取锁时间已经超过了有效时间），客户端应该在所有的<code>Redis</code>实例上进行解锁（即便某些<code>Redis</code>实例根本就没有加锁成功，防止某些节点获取到锁但是客户端没有得到响应而导致接下来的一段时间不能被重新获取锁）。</li>
+</ol>
+<h3 id="2-1-2-解锁"><a href="#2-1-2-解锁" class="headerlink" title="2.1.2 解锁"></a>2.1.2 解锁</h3><p>向所有的<code>Redis</code>实例发送释放锁命令即可，不用关心之前有没有从<code>Redis</code>实例成功获取到锁.</p>
+<h2 id="2-2-案例（商品超卖为例）"><a href="#2-2-案例（商品超卖为例）" class="headerlink" title="2.2 案例（商品超卖为例）"></a>2.2 案例（商品超卖为例）</h2><blockquote>
+<p>这部分以最常见的案例：抢购时的商品超卖（库存数减少为负数）为例</p>
+</blockquote>
+<h3 id="2-2-1-准备"><a href="#2-2-1-准备" class="headerlink" title="2.2.1 准备"></a>2.2.1 准备</h3><ul>
+<li><code>good</code>表</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`good`</span> (</span><br><span class="line">                      <span class="string">`id`</span> <span class="built_in">bigint</span>(<span class="number">20</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT <span class="keyword">COMMENT</span> <span class="string">'主键id'</span>,</span><br><span class="line">                      <span class="string">`good_name`</span> <span class="built_in">varchar</span>(<span class="number">255</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'商品名称'</span>,</span><br><span class="line">                      <span class="string">`good_counts`</span> <span class="built_in">int</span>(<span class="number">255</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'商品库存'</span>,</span><br><span class="line">                      <span class="string">`create_time`</span> <span class="built_in">timestamp</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="keyword">CURRENT_TIMESTAMP</span> <span class="keyword">COMMENT</span> <span class="string">'创建时间'</span>,</span><br><span class="line">                      PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>)</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> AUTO_INCREMENT=<span class="number">3</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8mb4 <span class="keyword">COMMENT</span>=<span class="string">'商品表'</span>;</span><br><span class="line"><span class="comment">-- 插入两条测试数据</span></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`good`</span> <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="string">'哇哈哈'</span>, <span class="number">5</span>, <span class="string">'2019-09-20 17:39:04'</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`good`</span> <span class="keyword">VALUES</span> (<span class="number">2</span>, <span class="string">'卫龙'</span>, <span class="number">5</span>, <span class="string">'2019-09-20 17:39:06'</span>);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>配置文件跟上面一样</li>
+</ul>
+<h3 id="2-2-2-核心实现"><a href="#2-2-2-核心实现" class="headerlink" title="2.2.2 核心实现"></a>2.2.2 核心实现</h3><ul>
+<li><code>Redisson</code> 配置类 <code>RedissonConfig.java</code></li>
+</ul>
+<blockquote>
+<p>我这里配置的是单机，更多配置详见<a href="https://github.com/redisson/redisson/wiki/%E7%9B%AE%E5%BD%95" target="_blank" rel="noopener">https://github.com/redisson/redisson/wiki/配置</a></p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RedissonConfig</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value</span>(<span class="string">"$&#123;spring.redis.host&#125;"</span>)</span><br><span class="line">    <span class="keyword">private</span> String host;</span><br><span class="line">    <span class="meta">@Value</span>(<span class="string">"$&#123;spring.redis.port&#125;"</span>)</span><br><span class="line">    <span class="keyword">private</span> String port;</span><br><span class="line">    <span class="meta">@Value</span>(<span class="string">"$&#123;spring.redis.password&#125;"</span>)</span><br><span class="line">    <span class="keyword">private</span> String password;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * RedissonClient,单机模式</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> IOException</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> RedissonClient <span class="title">redissonSentinel</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="comment">//支持单机，主从，哨兵，集群等模式,此为单机模式</span></span><br><span class="line">        </span><br><span class="line">        Config config = <span class="keyword">new</span> Config();</span><br><span class="line">        config.useSingleServer()</span><br><span class="line">                .setAddress(<span class="string">"redis://"</span> + host + <span class="string">":"</span> + port)</span><br><span class="line">                .setPassword(password);</span><br><span class="line">        <span class="keyword">return</span> Redisson.create(config);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>不加锁时</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> HttpResult <span class="title">saleGoods</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">// 以指定goodId = 1：哇哈哈为例</span></span><br><span class="line">    Long goodId = <span class="number">1L</span>;</span><br><span class="line">    GoodDO goodDO = goodMapper.selectByPrimaryKey(goodId);</span><br><span class="line">    <span class="keyword">int</span> goodStock = goodDO.getGoodCounts();</span><br><span class="line">    <span class="keyword">if</span> (goodStock &gt;= <span class="number">1</span>) &#123;</span><br><span class="line">        goodMapper.saleOneGood(goodId);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> HttpResult.success();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>加锁</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> HttpResult <span class="title">saleGoodsLock</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">// 以指定goodId = 2：卫龙为例</span></span><br><span class="line">    Long goodId = <span class="number">2L</span>;</span><br><span class="line">    GoodDO goodDO = goodMapper.selectByPrimaryKey(goodId);</span><br><span class="line">    <span class="keyword">int</span> goodStock = goodDO.getGoodCounts();</span><br><span class="line">    String key = goodDO.getGoodName();</span><br><span class="line">    log.info(<span class="string">"&#123;&#125;剩余总库存,&#123;&#125;件"</span>, key,goodStock);</span><br><span class="line">    <span class="comment">// 将商品的实时库存放在redis 中，便于读取</span></span><br><span class="line">    stringRedisTemplate.opsForValue().set(key, Integer.toString(goodStock));</span><br><span class="line">    <span class="comment">// redisson 锁 的key</span></span><br><span class="line">    String lockKey = goodDO.getId() +<span class="string">"_"</span> + key;</span><br><span class="line">    RLock lock = redissonClient.getLock(lockKey);</span><br><span class="line">    <span class="comment">// 设置60秒自动释放锁  （默认是30秒自动过期）</span></span><br><span class="line">    lock.lock(<span class="number">60</span>, TimeUnit.SECONDS);</span><br><span class="line">    <span class="comment">// 此步开始，串行销售</span></span><br><span class="line">    <span class="keyword">int</span> stock = Integer.parseInt(stringRedisTemplate.opsForValue().get(key));</span><br><span class="line">    <span class="comment">// 如果缓存中库存量大于1，可以继续销售</span></span><br><span class="line">    <span class="keyword">if</span> (stock &gt;= <span class="number">1</span>) &#123;</span><br><span class="line">        goodDO.setGoodCounts(stock - <span class="number">1</span>);</span><br><span class="line">        <span class="keyword">int</span> num = goodMapper.saleOneGood(goodId);</span><br><span class="line">        <span class="keyword">if</span> (num == <span class="number">1</span>) &#123;</span><br><span class="line">            <span class="comment">// 减库存成功，将缓存同步</span></span><br><span class="line">            stringRedisTemplate.opsForValue().set(key,Integer.toString((stock-<span class="number">1</span>)));</span><br><span class="line">        &#125;</span><br><span class="line">        log.info(<span class="string">"&#123;&#125;,当前库存,&#123;&#125;件"</span>, key,stock);</span><br><span class="line">    &#125;</span><br><span class="line">    lock.unlock();</span><br><span class="line">    <span class="keyword">return</span> HttpResult.success();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-测试"><a href="#2-3-测试" class="headerlink" title="2.3 测试"></a>2.3 测试</h3><blockquote>
+<p>采用的是<code>JMeter</code>工具进行测试，初始化的时候两个商品的库存设置都是：<code>5</code>;所以这里加锁和不加锁的情况都设置成：十次并发请求。</p>
+</blockquote>
+<h4 id="2-3-1-不加锁"><a href="#2-3-1-不加锁" class="headerlink" title="2.3.1 不加锁"></a>2.3.1 不加锁</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 售卖商品(不加锁)</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@PostMapping</span>(<span class="string">"/saleGoods"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> HttpResult <span class="title">saleGoods</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> redisLockService.saleGoods();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<ul>
+<li>请求方式：<code>POST</code></li>
+<li>请求地址：<a href="http://localhost:8080/redisLock/saleGoods" target="_blank" rel="noopener">http://localhost:8080/redisLock/saleGoods</a></li>
+<li>返回结果：<code>id =1</code>的商品库存减为<code>-5</code></li>
+</ul>
+<p><img src="https://user-gold-cdn.xitu.io/2019/9/22/16d59556925bf3ad?w=926&h=270&f=png&s=96527" alt=""></p>
+<h4 id="2-3-2-加锁"><a href="#2-3-2-加锁" class="headerlink" title="2.3.2 加锁"></a>2.3.2 加锁</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 售卖商品(加锁)</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@PostMapping</span>(<span class="string">"/saleGoodsLock"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> HttpResult <span class="title">saleGoodsLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> redisLockService.saleGoodsLock();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>请求方式：<code>POST</code></li>
+<li>请求地址：<a href="http://localhost:8080/redisLock/saleGoodsLock" target="_blank" rel="noopener">http://localhost:8080/redisLock/saleGoodsLock</a></li>
+<li>返回结果：<code>id =1</code>的商品库存减为<code>0</code></li>
+</ul>
+<p><img src="https://user-gold-cdn.xitu.io/2019/9/22/16d5955af6a8149c?w=1322&h=810&f=png&s=561586" alt=""></p>
+<h4 id="2-3-3-小结"><a href="#2-3-3-小结" class="headerlink" title="2.3.3 小结"></a>2.3.3 小结</h4><p>通过<code>2.3.1</code>和<code>2.3.2</code>的结果对比很明显：前者出现了超卖情况，库存数卖到了<code>-5</code>，这是决不允许的；而加了锁的情况后，库存只会减少到<code>0</code>，便不再销售。</p>
+<h2 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h2><p><strong>再次说明：以上代码不全，如需尝试，请前往Van 的 Github 查看完整示例代码</strong></p>
+<p>第一种基于<code>Redis</code>的分布式锁并不适合用于生产环境。<code>Redisson</code> 可用于生产环境。当然，分布式的选择还有<code>Zookeeper</code>的选项，Van后续会整理出来供大家参考。</p>
+<p><a href="https://github.com/vanDusty/Distributed/tree/master/distributed-lock" target="_blank" rel="noopener">Github 示例源码</a></p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/images/dusty_blog.png" alt="Van wechat" style="width: 200px; max-width: 100%;"/>
+    <div>最新文章，欢迎您扫一扫上面的微信公众号！</div>
+</div>
+
+      </div>
+    
+
+     <div>
+        
+          <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------　　　　本文结束　<i class="fa fa-heart"></i>　感谢您的阅读　　　　-------------</div>
+    
+</div>
+
+        
+      </div>
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Redis/" rel="tag"><i class="fa fa-tag"></i> Redis</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" rel="tag"><i class="fa fa-tag"></i> 分布式锁</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/09/09/43054a00.html" rel="prev" title="Spring Boot 集成 zxing 生成二维码">
+      <i class="fa fa-chevron-left"></i> Spring Boot 集成 zxing 生成二维码
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/10/02/747d9a37.html" rel="next" title="Spring 对象属性拷贝方式总结">
+      Spring 对象属性拷贝方式总结 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#一、jedis-实现"><span class="nav-number">1.</span> <span class="nav-text">一、jedis 实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-加锁"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 加锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-1-原理"><span class="nav-number">1.1.1.</span> <span class="nav-text">1.1.1 原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-2-小结"><span class="nav-number">1.1.2.</span> <span class="nav-text">1.1.2 小结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-释放锁"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 释放锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-案例（家庭多人领取奖励的场景）"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 案例（家庭多人领取奖励的场景）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-1-准备"><span class="nav-number">1.3.1.</span> <span class="nav-text">1.3.1 准备</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-2-核心实现"><span class="nav-number">1.3.2.</span> <span class="nav-text">1.3.2 核心实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-3-测试"><span class="nav-number">1.3.3.</span> <span class="nav-text">1.3.3 测试</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-3-1-不加锁"><span class="nav-number">1.3.3.1.</span> <span class="nav-text">1.3.3.1 不加锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-3-2-加锁"><span class="nav-number">1.3.3.2.</span> <span class="nav-text">1.3.3.2 加锁</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-小结"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 小结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#二、Redlock实现"><span class="nav-number">2.</span> <span class="nav-text">二、Redlock实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-原理"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-1-加锁"><span class="nav-number">2.1.1.</span> <span class="nav-text">2.1.1 加锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-2-解锁"><span class="nav-number">2.1.2.</span> <span class="nav-text">2.1.2 解锁</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-案例（商品超卖为例）"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 案例（商品超卖为例）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-1-准备"><span class="nav-number">2.2.1.</span> <span class="nav-text">2.2.1 准备</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-2-核心实现"><span class="nav-number">2.2.2.</span> <span class="nav-text">2.2.2 核心实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-测试"><span class="nav-number">2.2.3.</span> <span class="nav-text">2.3 测试</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-不加锁"><span class="nav-number">2.2.3.1.</span> <span class="nav-text">2.3.1 不加锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-加锁"><span class="nav-number">2.2.3.2.</span> <span class="nav-text">2.3.2 加锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-3-小结"><span class="nav-number">2.2.3.3.</span> <span class="nav-text">2.3.3 小结</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、总结"><span class="nav-number">2.3.</span> <span class="nav-text">三、总结</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <a href="/">
+      <img class="site-author-image" itemprop="image" alt="Van"
+        src="/images/advator.jpg">
+    </a>
+  <p class="site-author-name" itemprop="name">Van</p>
+  <div class="site-description" itemprop="description">我有一杯酒，可以慰风尘</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">51</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">50</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/vanDusty" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;vanDusty" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:vanzhangf@gmail.com" title="E-Mail → mailto:vanzhangf@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.cnblogs.com/vandusty" title="博客园 → https:&#x2F;&#x2F;www.cnblogs.com&#x2F;vandusty" rel="noopener" target="_blank"><i class="fa fa-fw fa-send-o"></i>博客园</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://juejin.im/user/5d5ea68e6fb9a06afa328f56/posts" title="掘金 → https:&#x2F;&#x2F;juejin.im&#x2F;user&#x2F;5d5ea68e6fb9a06afa328f56&#x2F;posts" rel="noopener" target="_blank"><i class="fa fa-fw fa-heartbeat"></i>掘金</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">浙ICP备18016950号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2016 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heartbeat"></i>
+  </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">359k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">10:52</span>
+</div><style>
+    .custom-sidebar {
+        margin-top: 20px;
+    }
+    .custom-sidebar-title {
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+        border-top: 1px dotted #ccc;
+    }
+</style>
+<div class="custom-sidebar">
+    <div class="custom-sidebar-title">
+        <a href="https://www.upyun.com/?utm_source=lianmeng&utm_medium=referral" target="_blank">
+            <img src="/images/youpai.png" alt="又拍云联盟" width="30"/>
+        </a>
+    </div>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var bp = document.createElement('script');
+      var curProtocol = window.location.protocol.split(':')[0];
+      bp.src = (curProtocol === 'https') ? 'https://zz.bdstatic.com/linksubmit/push.js' : 'http://push.zhanzhang.baidu.com/push.js';
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(bp, s);
+    })();
+  </script>
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body>
+</html>

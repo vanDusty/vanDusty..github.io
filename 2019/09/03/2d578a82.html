@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.dusty.vip","root":"/","scheme":"Pisces","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="工厂模式应用非常之广，在JDK底层源码以及各大主流框架中随处可见，一般以Factory结尾命名的类，比如Mybatis中的SqlSessionFactory，Spring中的BeanFactory等，都是工厂模式的典型代表。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="跟我学设计模式之工厂模式">
+<meta property="og:url" content="https://www.dusty.vip/2019/09/03/2d578a82.html">
+<meta property="og:site_name" content="风尘博客">
+<meta property="og:description" content="工厂模式应用非常之广，在JDK底层源码以及各大主流框架中随处可见，一般以Factory结尾命名的类，比如Mybatis中的SqlSessionFactory，Spring中的BeanFactory等，都是工厂模式的典型代表。">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/12/2/16ec756a342065cc?w=797&h=609&f=png&s=22530">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/12/3/16ec757205840ab1?w=791&h=609&f=png&s=21730">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/12/3/16ec757830f58e1f?w=791&h=609&f=png&s=23331">
+<meta property="article:published_time" content="2019-09-03T14:42:05.000Z">
+<meta property="article:modified_time" content="2020-04-22T07:02:07.400Z">
+<meta property="article:author" content="Van">
+<meta property="article:tag" content="工厂模式">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://user-gold-cdn.xitu.io/2019/12/2/16ec756a342065cc?w=797&h=609&f=png&s=22530">
+
+<link rel="canonical" href="https://www.dusty.vip/2019/09/03/2d578a82.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>跟我学设计模式之工厂模式 | 风尘博客</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?ddcd15db9f34dd2fff4f8efe4962cd1c";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">风尘博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">风尘博客</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/vanDusty" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/09/03/2d578a82.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          跟我学设计模式之工厂模式
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-03 22:42:05" itemprop="dateCreated datePublished" datetime="2019-09-03T22:42:05+08:00">2019-09-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>8.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>16 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>工厂模式应用非常之广，在<code>JDK</code>底层源码以及各大主流框架中随处可见，一般以<code>Factory</code>结尾命名的类，比如<code>Mybatis</code>中的<code>SqlSessionFactory</code>，<code>Spring</code>中的<code>BeanFactory</code>等，都是工厂模式的典型代表。</p>
+<a id="more"></a>
+
+<h2 id="一、简单工厂模式"><a href="#一、简单工厂模式" class="headerlink" title="一、简单工厂模式"></a>一、简单工厂模式</h2><h3 id="1-1-概念"><a href="#1-1-概念" class="headerlink" title="1.1 概念"></a>1.1 概念</h3><p>简单工厂模式又称为静态工厂模式，属于设计模式中的创建型模式。简单工厂模式通过对外提供一个静态方法来统一为类创建实例，目的是实现类与类之间解耦:客户端不需要知道这个对象是如何被穿创建出来的，只需要调用简单工厂模式的方法来统一创建就可以了，从而明确了各个类的职责。</p>
+<h3 id="1-2-示例"><a href="#1-2-示例" class="headerlink" title="1.2 示例"></a>1.2 示例</h3><p>简单工厂模式，以生产汽车轮胎为例。</p>
+<h4 id="1-2-1-实体类"><a href="#1-2-1-实体类" class="headerlink" title="1.2.1 实体类"></a>1.2.1 实体类</h4><ul>
+<li>轮胎通用属性</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Tire</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 通用属性</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> String common;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>奔驰车轮胎</li>
+</ul>
+<blockquote>
+<p>包含通用属性外还有自己的特有属性</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TireForBenz</span> <span class="keyword">extends</span> <span class="title">Tire</span></span>&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    Tire tire;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 特有属性</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> String benz;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">TireForBenz</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.benz = <span class="string">"得到 Benz 轮胎"</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"["</span>+<span class="keyword">this</span>.benz +<span class="string">"]"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>宝马车轮胎</li>
+</ul>
+<blockquote>
+<p>包含通用属性外还有自己的特有属性</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TireForBwm</span> <span class="keyword">extends</span> <span class="title">Tire</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    Tire tire;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 特有属性</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> String bwm;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">TireForBwm</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.bwm = <span class="string">"得到 Bwm 轮胎"</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"["</span>+<span class="keyword">this</span>.bwm +<span class="string">"]"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-2-2-生产工艺"><a href="#1-2-2-生产工艺" class="headerlink" title="1.2.2 生产工艺"></a>1.2.2 生产工艺</h4><ul>
+<li>生产轮胎的抽象方法，各个产线有自己的方式生产</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">TireFactory</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function">Tire <span class="title">produceTire</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>奔驰汽车轮胎产线</li>
+</ul>
+<blockquote>
+<p>重写生产轮胎的方法返回奔驰型轮胎。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BenzTireFactory</span> <span class="keyword">implements</span> <span class="title">TireFactory</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 生产奔驰轮胎</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Tire <span class="title">produceTire</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"奔驰轮胎生产中。。。"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> TireForBenz();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>宝马汽车轮胎产线</li>
+</ul>
+<blockquote>
+<p>重写生产轮胎的方法返回宝马型轮胎。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BwmTireFactory</span> <span class="keyword">implements</span> <span class="title">TireFactory</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 生产宝马轮胎</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> TireForBwm <span class="title">produceTire</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"宝马轮胎生产中。。。"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> TireForBwm();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-2-3-轮胎工厂类"><a href="#1-2-3-轮胎工厂类" class="headerlink" title="1.2.3 轮胎工厂类"></a>1.2.3 轮胎工厂类</h4><blockquote>
+<p>通过传入的品牌名称调用相应产线生产相应品牌的轮胎</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleFactoryMode</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> TireFactory <span class="title">produceCar</span><span class="params">(String name)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="string">"BenzTireFactory"</span>.equals(name)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> BenzTireFactory();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (<span class="string">"BwmTireFactory"</span>.equals(name)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> BwmTireFactory();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-2-4-测试"><a href="#1-2-4-测试" class="headerlink" title="1.2.4 测试"></a>1.2.4 测试</h4><blockquote>
+<p>客户端通过工厂类获取实例对象。</p>
+</blockquote>
+<ul>
+<li>测试方法</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"> <span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">simpleFactoryModeTest</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 造奔驰轮胎</span></span><br><span class="line">    TireFactory benz = SimpleFactoryMode.produceCar(<span class="string">"BenzTireFactory"</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">null</span> != benz) &#123;</span><br><span class="line">        benz.produceTire();</span><br><span class="line">    &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">"工厂暂时无法生产奔驰轮胎"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 造宝马轮胎</span></span><br><span class="line">    TireFactory bwm = SimpleFactoryMode.produceCar(<span class="string">"BwmTireFactory"</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">null</span> != bwm) &#123;</span><br><span class="line">        bwm.produceTire();</span><br><span class="line">    &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">"工厂暂时无法生产宝马轮胎"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 造本田汽轮胎(工厂无该方法)</span></span><br><span class="line">    TireFactory honda = SimpleFactoryMode.produceCar(<span class="string">"Honda"</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">null</span> != honda) &#123;</span><br><span class="line">        honda.produceTire();</span><br><span class="line">    &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">"工厂暂时无法生产本田轮胎"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>结果</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">奔驰轮胎生产中。。。</span><br><span class="line">宝马轮胎生产中。。。</span><br><span class="line">工厂暂时无法生产本田轮胎</span><br></pre></td></tr></table></figure>
+
+<p>该方式确实能完成不同品牌的轮胎生产，但是，有个问题：<strong>方法参数是字符串，可控性有待提升。</strong></p>
+<h3 id="1-3-简单工厂模式优化"><a href="#1-3-简单工厂模式优化" class="headerlink" title="1.3 简单工厂模式优化"></a>1.3 简单工厂模式优化</h3><blockquote>
+<p>不要通过传入的字符串来判断需要创建对象，而是客户端想要创建什么对象，只需要传入具体的实现类就可以了，然后通过<code>Java</code>的反射来创建对象。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> TireFactory <span class="title">produceCar</span><span class="params">(Class&lt;? extends TireFactory&gt; clazz)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 通过Java的反射来创建对象</span></span><br><span class="line">        <span class="keyword">return</span> clazz.newInstance();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InstantiationException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IllegalAccessException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每次创建对象都是通过反射来创建的，所以在性能上是有一定的损耗。</p>
+<ul>
+<li>测试</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">simpleFactoryModeUpgradeTest</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 造奔驰轮胎</span></span><br><span class="line">    TireFactory benzTire = SimpleFactoryMode.produceCar(BenzTireFactory<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">    TireForBenz benz = (TireForBenz) benzTire.produceTire();</span><br><span class="line">    System.out.println(benz.toString());</span><br><span class="line">    <span class="comment">// 造宝马轮胎</span></span><br><span class="line">    TireFactory bwmTire = SimpleFactoryMode.produceCar(BwmTireFactory<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">    TireForBwm bwm = (TireForBwm) bwmTire.produceTire();</span><br><span class="line">    System.out.println(bwm.toString());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>结果</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">奔驰轮胎生产中。。。</span><br><span class="line">[得到 Benz 轮胎]</span><br><span class="line">宝马轮胎生产中。。。</span><br><span class="line">[得到 Bwm 轮胎]</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-4-小结"><a href="#1-4-小结" class="headerlink" title="1.4 小结"></a>1.4 小结</h3><p>简单工厂模式确实在一定程度上实现代码的解耦，而这种解耦的特点在于，这种模式将对象的创建和使用分离。这种模式的本质在于通过一个传入的参数，做<code>if...else</code>判断，来达到返回不同类型对象的目的。缺点也很明显，不符合<a href="https://juejin.im/post/5dd67b8ff265da47b60c03fe" target="_blank" rel="noopener">开闭原则</a>（比如新增一个保时捷轮胎的生产，除了需要增加实体和生产方法，还需要修改工厂类<code>SimpleFactoryMode.java</code>）。因此，如果需要增加新的类型，就不得不去修改原来的代码，违反开闭原则。</p>
+<ul>
+<li>简单工厂模式优点：</li>
+</ul>
+<ol>
+<li>简单优化了软件体系结构，明确了各自功能模块的职责和权利；</li>
+<li>通过工厂类，外界不需要直接创建具体产品对象，只需要负责消费，不需要关心内部如何创建对象。</li>
+</ol>
+<ul>
+<li>简单工厂模式缺点：</li>
+</ul>
+<ol>
+<li>改进前的简单工厂模式全部创建逻辑都集中在一个工厂类中，能创建的类只能是考虑到的，如果需要添加新的类，就必须改变工厂类了;</li>
+<li>改进前的简单工厂模式随着具体产品的不断增多，可能会出现共产类根据不同条件创建不同实例的需求，这种对条件的判断和对具体产品类型的判断交错在一起，很难避免功能模块的蔓延，对系统的维护和扩展不利;</li>
+<li>改进后的简单工厂模式主要是使用反射效率会低一些。</li>
+</ol>
+<h2 id="二、工厂方法模式"><a href="#二、工厂方法模式" class="headerlink" title="二、工厂方法模式"></a>二、工厂方法模式</h2><ul>
+<li>简单工厂模式之所以违反开闭原则，关键在于什么？</li>
+</ul>
+<p>那就是它把所有对象的创建都集中在同一个工厂类里面了，因此，当新增一个新对象时，必然会需要修改这个共享工厂类，违反开闭原则自然不可避免。</p>
+<ul>
+<li>解决方案</li>
+</ul>
+<p>既然问题关键在于，所有对象的创建都跟这个唯一的工厂类耦合了，那我每个对象各自都配置一个单独的工厂类，这个工厂类只创建各自类型的对象，那这样不就解决耦合的问题了吗？</p>
+<h3 id="2-1-概念"><a href="#2-1-概念" class="headerlink" title="2.1 概念"></a>2.1 概念</h3><p>工厂方法模式是指定义一个创建对象的接口，但<strong>让实现这个接口的类来决定实例化哪个类</strong>。工厂方法让类的实例化推迟到子类中进行。在工厂方法模式中用户只需要关心所需产品对应的工厂，无须关心创建细节，而且加入新的产品符合开闭原则。</p>
+<h3 id="2-2-示例"><a href="#2-2-示例" class="headerlink" title="2.2 示例"></a>2.2 示例</h3><p>工厂方法模式，以生产发动机为例。</p>
+<h4 id="2-2-1-实体"><a href="#2-2-1-实体" class="headerlink" title="2.2.1 实体"></a>2.2.1 实体</h4><ul>
+<li>发动机的通用属性</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Engine</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 型号</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> String common;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>奔驰发动机</li>
+</ul>
+<blockquote>
+<p>包含通用属性外还有自己的特有属性</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">EngineForBenz</span> <span class="keyword">extends</span> <span class="title">Engine</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    Engine engine;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 特有属性</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> String benz;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">EngineForBenz</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.benz = <span class="string">"得到 Benz 发动机"</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"["</span>+<span class="keyword">this</span>.benz +<span class="string">"]"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>宝马发动机</li>
+</ul>
+<blockquote>
+<p>包含通用属性外还有自己的特有属性</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">EngineForBwm</span> <span class="keyword">extends</span> <span class="title">Engine</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    Engine engine;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 特有属性</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> String bwm;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">EngineForBwm</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.bwm = <span class="string">"得到 Bwm 发动机"</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"["</span>+<span class="keyword">this</span>.bwm +<span class="string">"]"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-2-生产工艺（发动机的工厂类）"><a href="#2-2-2-生产工艺（发动机的工厂类）" class="headerlink" title="2.2.2 生产工艺（发动机的工厂类）"></a>2.2.2 生产工艺（发动机的工厂类）</h4><ul>
+<li>抽象工厂类，定义生产发动机的方法，各个产线自己的去实现</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">EngineFactory</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function">Engine <span class="title">produceEngine</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>创建奔驰子工厂，实现其的工艺</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BenzEngineFactory</span> <span class="keyword">implements</span> <span class="title">EngineFactory</span>&lt;<span class="title">EngineForBenz</span>&gt; </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 生产奔驰发动机</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Engine <span class="title">produceEngine</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"奔驰发动机生产中。。。"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> EngineForBenz();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>创建宝马子工厂，实现其的工艺</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BwmEngineFactory</span> <span class="keyword">implements</span> <span class="title">EngineFactory</span>&lt;<span class="title">EngineForBwm</span>&gt; </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 生产宝马发动机</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Engine <span class="title">produceEngine</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"宝马发动机生产中。。。"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> EngineForBwm();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-3-测试"><a href="#2-2-3-测试" class="headerlink" title="2.2.3 测试"></a>2.2.3 测试</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">factoryModeTest</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 造奔驰发动机</span></span><br><span class="line">    EngineFactory car = <span class="keyword">new</span> BenzEngineFactory();</span><br><span class="line">    EngineForBenz benz = (EngineForBenz) car.produceEngine();</span><br><span class="line">    System.out.println(benz.toString());</span><br><span class="line">    <span class="comment">// 造宝马发动机</span></span><br><span class="line">    EngineFactory carFactory = <span class="keyword">new</span> BwmEngineFactory();</span><br><span class="line">    EngineForBwm bwm = (EngineForBwm) carFactory.produceEngine();</span><br><span class="line">    System.out.println(bwm.toString());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>结果</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">奔驰发动机生产中。。。</span><br><span class="line">[得到 Benz 发动机]</span><br><span class="line">宝马发动机生产中。。。</span><br><span class="line">[得到 Bwm 发动机]</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-小结"><a href="#2-3-小结" class="headerlink" title="2.3 小结"></a>2.3 小结</h3><p>工厂方法模式轻松解决了简单工厂模式的问题，符合开闭原则。在上面例子中，当需要新增一个保时捷汽车，此时只需要提供一个对应的<code>EngineForBSJ.java</code>实现<code>produceEngine()</code>方法即可，对于原先代码再不需要做任何修改。</p>
+<p>但是每个类型的对象都会有一个与之对应的工厂类。如果对象的类型非常多，意味着会需要创建很多的工厂实现类，造成类数量膨胀，对后续维护带来一些麻烦。</p>
+<ul>
+<li>缺点</li>
+</ul>
+<ol>
+<li>客户端（应用层）不依赖于产品类实例如何被创建、实现等细节；</li>
+<li>一个类通过其子类来指定创建哪个对象。</li>
+</ol>
+<ul>
+<li>缺点</li>
+</ul>
+<ol>
+<li>类的个数容易过多，增加复杂度；</li>
+<li>增加了系统的抽象性和理解难度。</li>
+</ol>
+<h2 id="三、抽象工厂模式"><a href="#三、抽象工厂模式" class="headerlink" title="三、抽象工厂模式"></a>三、抽象工厂模式</h2><p>抽象工厂模式出现，就是为了解决上述工厂方法模式存在的问题，可以看成是工厂方法模式的升级。</p>
+<h3 id="3-1-背景"><a href="#3-1-背景" class="headerlink" title="3.1 背景"></a>3.1 背景</h3><ul>
+<li>类数量膨胀的情景</li>
+</ul>
+<p>工厂方法模式创建的对象其实归根到底都是同一类对象。以汽车生产为例，无论是轮胎还是发动机，都是汽车生产的一部分，都是属于汽车生产的过程。如下图：</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/2/16ec756a342065cc?w=797&h=609&f=png&s=22530" alt="风尘博客"></p>
+<p>由上图我们可以发现，虽然分为奔驰车和宝马车，但是从工厂方法角度，他们都属于汽车这一类别，这就导致了需要单独为每一个零件指定各自的工厂类，从而导致了类数量膨胀的问题。</p>
+<ul>
+<li>解决方案</li>
+</ul>
+<p>既然这样，我们可以把每类汽车指定一个工厂，然后再让不同产线去生产他需要的产品，如下图</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/3/16ec757205840ab1?w=791&h=609&f=png&s=21730" alt="风尘博客"></p>
+<p>这样当每一类物品组件数量特别多，可以把它称为<strong>产品族</strong>。抽象工厂模式就是为了创建一系列以产品族为单位的对象，这样在需要创建大量系列对象时可以大大提高开发效率，降低维护成本。</p>
+<h3 id="3-2-示例"><a href="#3-2-示例" class="headerlink" title="3.2 示例"></a>3.2 示例</h3><blockquote>
+<p>因为奔驰轮胎/宝马轮胎/奔驰发动机/宝马发动机的实体在前面已经创建过，这里就直接用了。</p>
+</blockquote>
+<h4 id="3-2-1-汽车工厂类-顶层抽象工厂类"><a href="#3-2-1-汽车工厂类-顶层抽象工厂类" class="headerlink" title="3.2.1 汽车工厂类(顶层抽象工厂类)"></a>3.2.1 汽车工厂类(顶层抽象工厂类)</h4><blockquote>
+<p>该类已包含轮胎/发动机生产，具体实体键一/二中相关实体。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">CarFactory</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 准备生产</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">init</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 生产轮胎</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">Tire <span class="title">produceTire</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 生产发动机</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">Engine <span class="title">produceEngine</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-2-奔驰汽车产品族（奔驰汽车工厂类）"><a href="#3-2-2-奔驰汽车产品族（奔驰汽车工厂类）" class="headerlink" title="3.2.2 奔驰汽车产品族（奔驰汽车工厂类）"></a>3.2.2 奔驰汽车产品族（奔驰汽车工厂类）</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BenzCarFactory</span> <span class="keyword">implements</span> <span class="title">CarFactory</span></span>&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">init</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"----------------------- 奔驰汽车准备生产 -----------------------"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Tire <span class="title">produceTire</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"正在生产奔驰轮胎"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> TireForBenz();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Engine <span class="title">produceEngine</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"正在生产奔驰发动机"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> EngineForBenz();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-2-宝马汽车产品族（宝马汽车工厂类）"><a href="#3-2-2-宝马汽车产品族（宝马汽车工厂类）" class="headerlink" title="3.2.2 宝马汽车产品族（宝马汽车工厂类）"></a>3.2.2 宝马汽车产品族（宝马汽车工厂类）</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BwmCarFactory</span> <span class="keyword">implements</span> <span class="title">CarFactory</span></span>&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">init</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"----------------------- 宝马汽车准备生产 -----------------------"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Tire <span class="title">produceTire</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"正在生产宝马轮胎"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> TireForBwm();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Engine <span class="title">produceEngine</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"正在生产宝马发动机"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> EngineForBwm();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-3-测试"><a href="#3-2-3-测试" class="headerlink" title="3.2.3 测试"></a>3.2.3 测试</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">abstractFactoryModeTest</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 生产奔驰整车的零部件</span></span><br><span class="line">    CarFactory benz = <span class="keyword">new</span> BenzCarFactory();</span><br><span class="line">    benz.init();</span><br><span class="line">    TireForBenz benzTire = (TireForBenz) benz.produceTire();</span><br><span class="line">    System.out.println(benzTire.toString());</span><br><span class="line"></span><br><span class="line">    EngineForBenz benzEngine = (EngineForBenz) benz.produceEngine();</span><br><span class="line">    System.out.println(benzEngine.toString());</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 生成宝马整车的零部件d</span></span><br><span class="line">    CarFactory bwm = <span class="keyword">new</span> BwmCarFactory();</span><br><span class="line">    bwm.init();</span><br><span class="line">    TireForBwm bwmTire = (TireForBwm) bwm.produceTire();</span><br><span class="line">    System.out.println(bwmTire.toString());</span><br><span class="line"></span><br><span class="line">    EngineForBwm bwmEngine = (EngineForBwm) bwm.produceEngine();</span><br><span class="line">    System.out.println(bwmEngine.toString());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>结果</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">----------------------- 奔驰汽车准备生产 -----------------------</span><br><span class="line">正在生产奔驰轮胎</span><br><span class="line">[得到 Benz 轮胎]</span><br><span class="line">正在生产奔驰发动机</span><br><span class="line">[得到 Benz 发动机]</span><br><span class="line">----------------------- 宝马汽车准备生产 -----------------------</span><br><span class="line">正在生产宝马轮胎</span><br><span class="line">[得到 Bwm 轮胎]</span><br><span class="line">正在生产宝马发动机</span><br><span class="line">[得到 Bwm 发动机]</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-思考"><a href="#3-3-思考" class="headerlink" title="3.3 思考"></a>3.3 思考</h3><p>既然说抽象工厂模式是工厂方法模式的升级，那到底升级了啥？</p>
+<p>其实是<strong>由原来的单一产品的生产升级成为了系列产品的生产</strong>。设想一下，假设上面汽车的例子中，每一品牌汽车中就只生产一种部件，比如就只生产发动机，不生产轮胎等其他组件了，如下图</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/3/16ec757830f58e1f?w=791&h=609&f=png&s=23331" alt=""></p>
+<p>发现了什么没有？<strong>抽象工厂模式居然转变为我们之前讲过的工厂方法模式</strong>了！换句话说，当你的产品族中只生产一种产品的时候，你的抽象工厂模式其实已经退化为工厂方法模式了。反过来说，当生产多种产品时，工厂方法模式就进化为抽象工厂模式。</p>
+<h3 id="3-4-小结"><a href="#3-4-小结" class="headerlink" title="3.4 小结"></a>3.4 小结</h3><p>抽象工厂模式在创建大量系列对象时可以大大提高开发效率，就是为生产产品族而生的，而对于生产单一产品却无能为力。</p>
+<p>如果需要添加一个新的产品族，那就简单了，比如新增一个保时捷汽车，那就只需要添加一个保时捷汽车的工厂实现类就好了，并不会对原有的代码造成任何影响。</p>
+<p>但是，如果假设在汽车中，我需要再加一个组件，比如倒车影像，怎么操作？你需要在<code>CarFactory</code>接口中添加返回倒车影像对象的接口。这一加不得了了……<strong>所有品牌汽车实现类全部需要修改并追加该方法的实现，违反了开闭原则</strong>。</p>
+<ul>
+<li>抽象工厂模式优点：</li>
+</ul>
+<p>创建大量系列对象时可以大大提高开发效率，降低维护成本。</p>
+<ul>
+<li>抽象工厂模式缺点：</li>
+</ul>
+<ol>
+<li>规定了所有可能被创建的产品集合，产品族中扩展新的产品困难，需要修改抽象工厂的接口；</li>
+<li>增加了系统的抽象性和理解难度。</li>
+</ol>
+<h2 id="四、总结"><a href="#四、总结" class="headerlink" title="四、总结"></a>四、总结</h2><h3 id="4-1-如何选择"><a href="#4-1-如何选择" class="headerlink" title="4.1 如何选择"></a>4.1 如何选择</h3><blockquote>
+<p>工厂模式的三种形式都介绍完了，那我们实际开发中该如何去选择呢？</p>
+</blockquote>
+<ol>
+<li>从设计原则来说，简单工厂模式不符合开闭原则。但是很神奇，在实际场景中，简单工厂模式确实用的最多的。</li>
+<li>工厂方法模式是专门用于解决单个对象创建工作，本身模式没问题，也符合开闭原则。但是存在工厂类数量膨胀的问题。如果需要创建的工厂类不是很多，是一种不错的选择。</li>
+<li>抽象工厂模式天生就是为生产产品族而生的。所以如果你需要创建的对象非常之多，但是对象之间存在明显产品族特征，那么这个时候用抽象工厂模式非常合适。</li>
+</ol>
+<h3 id="4-2-示例源码"><a href="#4-2-示例源码" class="headerlink" title="4.2 示例源码"></a>4.2 示例源码</h3><p><a href="https://github.com/vanDusty/Design-Patterns/tree/master/factory-demo" target="_blank" rel="noopener">Github 示例代码</a></p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/images/dusty_blog.png" alt="Van wechat" style="width: 200px; max-width: 100%;"/>
+    <div>最新文章，欢迎您扫一扫上面的微信公众号！</div>
+</div>
+
+      </div>
+    
+
+     <div>
+        
+          <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------　　　　本文结束　<i class="fa fa-heart"></i>　感谢您的阅读　　　　-------------</div>
+    
+</div>
+
+        
+      </div>
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F/" rel="tag"><i class="fa fa-tag"></i> 工厂模式</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/08/21/884f19cf.html" rel="prev" title="跟我学设计模式之单例模式">
+      <i class="fa fa-chevron-left"></i> 跟我学设计模式之单例模式
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/09/09/43054a00.html" rel="next" title="Spring Boot 集成 zxing 生成二维码">
+      Spring Boot 集成 zxing 生成二维码 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、简单工厂模式"><span class="nav-number">1.</span> <span class="nav-text">一、简单工厂模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-概念"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-示例"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 示例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-实体类"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.2.1 实体类</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-生产工艺"><span class="nav-number">1.2.2.</span> <span class="nav-text">1.2.2 生产工艺</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-3-轮胎工厂类"><span class="nav-number">1.2.3.</span> <span class="nav-text">1.2.3 轮胎工厂类</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-4-测试"><span class="nav-number">1.2.4.</span> <span class="nav-text">1.2.4 测试</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-简单工厂模式优化"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 简单工厂模式优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-小结"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 小结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、工厂方法模式"><span class="nav-number">2.</span> <span class="nav-text">二、工厂方法模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-概念"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-示例"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 示例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-实体"><span class="nav-number">2.2.1.</span> <span class="nav-text">2.2.1 实体</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-生产工艺（发动机的工厂类）"><span class="nav-number">2.2.2.</span> <span class="nav-text">2.2.2 生产工艺（发动机的工厂类）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3-测试"><span class="nav-number">2.2.3.</span> <span class="nav-text">2.2.3 测试</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-小结"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 小结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、抽象工厂模式"><span class="nav-number">3.</span> <span class="nav-text">三、抽象工厂模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-背景"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 背景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-示例"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 示例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1-汽车工厂类-顶层抽象工厂类"><span class="nav-number">3.2.1.</span> <span class="nav-text">3.2.1 汽车工厂类(顶层抽象工厂类)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-奔驰汽车产品族（奔驰汽车工厂类）"><span class="nav-number">3.2.2.</span> <span class="nav-text">3.2.2 奔驰汽车产品族（奔驰汽车工厂类）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-宝马汽车产品族（宝马汽车工厂类）"><span class="nav-number">3.2.3.</span> <span class="nav-text">3.2.2 宝马汽车产品族（宝马汽车工厂类）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-3-测试"><span class="nav-number">3.2.4.</span> <span class="nav-text">3.2.3 测试</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-思考"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 思考</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-小结"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 小结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#四、总结"><span class="nav-number">4.</span> <span class="nav-text">四、总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-如何选择"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 如何选择</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-示例源码"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 示例源码</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <a href="/">
+      <img class="site-author-image" itemprop="image" alt="Van"
+        src="/images/advator.jpg">
+    </a>
+  <p class="site-author-name" itemprop="name">Van</p>
+  <div class="site-description" itemprop="description">我有一杯酒，可以慰风尘</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">51</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">50</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/vanDusty" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;vanDusty" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:vanzhangf@gmail.com" title="E-Mail → mailto:vanzhangf@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.cnblogs.com/vandusty" title="博客园 → https:&#x2F;&#x2F;www.cnblogs.com&#x2F;vandusty" rel="noopener" target="_blank"><i class="fa fa-fw fa-send-o"></i>博客园</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://juejin.im/user/5d5ea68e6fb9a06afa328f56/posts" title="掘金 → https:&#x2F;&#x2F;juejin.im&#x2F;user&#x2F;5d5ea68e6fb9a06afa328f56&#x2F;posts" rel="noopener" target="_blank"><i class="fa fa-fw fa-heartbeat"></i>掘金</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">浙ICP备18016950号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2016 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heartbeat"></i>
+  </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">359k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">10:52</span>
+</div><style>
+    .custom-sidebar {
+        margin-top: 20px;
+    }
+    .custom-sidebar-title {
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+        border-top: 1px dotted #ccc;
+    }
+</style>
+<div class="custom-sidebar">
+    <div class="custom-sidebar-title">
+        <a href="https://www.upyun.com/?utm_source=lianmeng&utm_medium=referral" target="_blank">
+            <img src="/images/youpai.png" alt="又拍云联盟" width="30"/>
+        </a>
+    </div>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var bp = document.createElement('script');
+      var curProtocol = window.location.protocol.split(':')[0];
+      bp.src = (curProtocol === 'https') ? 'https://zz.bdstatic.com/linksubmit/push.js' : 'http://push.zhanzhang.baidu.com/push.js';
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(bp, s);
+    })();
+  </script>
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body>
+</html>

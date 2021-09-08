@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.dusty.vip","root":"/","scheme":"Pisces","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="本文介绍：日志输出到文件并根据LEVEL级别将日志分类保存到不同文件、通过异步输出日志减少磁盘IO提高性能">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring Boot 整合 Logback 异步打印 Web 请求参数">
+<meta property="og:url" content="https://www.dusty.vip/2019/02/12/7e5b5007.html">
+<meta property="og:site_name" content="风尘博客">
+<meta property="og:description" content="本文介绍：日志输出到文件并根据LEVEL级别将日志分类保存到不同文件、通过异步输出日志减少磁盘IO提高性能">
+<meta property="article:published_time" content="2019-02-11T16:05:10.000Z">
+<meta property="article:modified_time" content="2020-04-22T07:02:07.397Z">
+<meta property="article:author" content="Van">
+<meta property="article:tag" content="日志">
+<meta property="article:tag" content="AOP">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://www.dusty.vip/2019/02/12/7e5b5007.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>Spring Boot 整合 Logback 异步打印 Web 请求参数 | 风尘博客</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?ddcd15db9f34dd2fff4f8efe4962cd1c";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">风尘博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">风尘博客</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/vanDusty" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/02/12/7e5b5007.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spring Boot 整合 Logback 异步打印 Web 请求参数
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-02-12 00:05:10" itemprop="dateCreated datePublished" datetime="2019-02-12T00:05:10+08:00">2019-02-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>10k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>18 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>本文介绍：日志输出到文件并根据<code>LEVEL</code>级别将日志分类保存到不同文件、通过异步输出日志减少磁盘<code>IO</code>提高性能</p>
+</blockquote>
+<a id="more"></a>
+
+<h2 id="一、Logback"><a href="#一、Logback" class="headerlink" title="一、Logback"></a>一、<code>Logback</code></h2><h3 id="1-1-背景"><a href="#1-1-背景" class="headerlink" title="1.1 背景"></a>1.1 背景</h3><p><code>Logback</code>是由<code>log4j</code>创始人设计的另一个开源日志组件，它分为下面下个模块：</p>
+<ol>
+<li><code>logback-core</code>：其它两个模块的基础模块</li>
+<li><code>logback-classic</code>：它是<code>log4j</code>的一个改良版本，同时它完整实现了<code>slf4j API</code>使你可以很方便地更换成其它日志系统如<code>log4j</code>或<code>JDK14 Logging</code></li>
+<li><code>logback-access</code>：访问模块与<code>Servlet</code>容器集成提供通过<code>Http</code>来访问日志的功能</li>
+</ol>
+<h3 id="1-2-日志级别"><a href="#1-2-日志级别" class="headerlink" title="1.2 日志级别"></a>1.2 日志级别</h3><blockquote>
+<p>包括：<code>TRACE</code>、<code>DEBUG</code>、<code>INFO</code>、<code>WARN</code> 和 <code>ERROR</code>。</p>
+</blockquote>
+<h4 id="1-2-1-TRACE"><a href="#1-2-1-TRACE" class="headerlink" title="1.2.1 TRACE"></a>1.2.1 <code>TRACE</code></h4><p>特别详细的系统运行完成信息，业务代码中，不要使用。(除非有特殊用意，否则请使用<code>DEBUG</code>级别替代)</p>
+<h4 id="1-2-2-DEBUG"><a href="#1-2-2-DEBUG" class="headerlink" title="1.2.2 DEBUG"></a>1.2.2 <code>DEBUG</code></h4><ol>
+<li>可以填写所有的想知道的相关信息(但不代表可以随便写，<code>debug</code>信息要有意义,最好有相关参数)；</li>
+<li>生产环境需要关闭<code>DEBUG</code>信息</li>
+<li>如果在生产情况下需要开启<code>DEBUG</code>,需要使用开关进行管理，不能一直开启。</li>
+</ol>
+<h4 id="1-2-3-INFO"><a href="#1-2-3-INFO" class="headerlink" title="1.2.3 INFO"></a>1.2.3 <code>INFO</code></h4><ul>
+<li><p>系统运行信息</p>
+<ol>
+<li><code>Service</code>方法中对于系统/业务状态的变更；</li>
+<li>主要逻辑中的分步骤。</li>
+</ol>
+</li>
+<li><p>外部接口部分</p>
+<ol>
+<li>客户端请求参数；</li>
+<li>调用第三方时的调用参数和调用结果。</li>
+</ol>
+</li>
+<li><p>说明</p>
+</li>
+</ul>
+<ol>
+<li>并不是所有的<code>Service</code>都进行出入口打点记录,单一、简单<code>Service</code>是没有意义的；</li>
+<li>对于复杂的业务逻辑，需要进行日志打点，以及埋点记录，比如电商系统中的下订单逻辑，以及<code>OrderAction</code>操作(业务状态变更)；</li>
+<li>对于整个系统的提供出的接口，使用<code>INFO</code>记录入参；</li>
+<li>如果所有的<code>Service</code>为<code>SOA</code>架构，那么可以看成是一个外部接口提供方，那么必须记录入参；</li>
+<li>调用其他第三方服务时，所有的出参和入参是必须要记录的(因为你很难追溯第三方模块发生的问题)。</li>
+</ol>
+<h4 id="1-2-4-WARN"><a href="#1-2-4-WARN" class="headerlink" title="1.2.4 WARN"></a>1.2.4 <code>WARN</code></h4><ul>
+<li><p>不应该出现但是不影响程序、当前请求正常运行的异常情况:</p>
+<ol>
+<li>有容错机制的时候出现的错误情况；</li>
+<li>找不到配置文件，但是系统能自动创建配置文件；</li>
+</ol>
+</li>
+<li><p>即将接近临界值的时候，例如：缓存池占用达到警告线；</p>
+</li>
+<li><p>业务异常的记录,比如:当接口抛出业务异常时，应该记录此异常。</p>
+</li>
+</ul>
+<h4 id="1-2-5-ERROR"><a href="#1-2-5-ERROR" class="headerlink" title="1.2.5 ERROR"></a>1.2.5 <code>ERROR</code></h4><p>影响到程序正常运行、当前请求正常运行的异常情况:</p>
+<ol>
+<li>打开配置文件失败；</li>
+<li>所有第三方对接的异常(包括第三方返回错误码)；</li>
+<li>所有影响功能使用的异常，包括:<code>SQLException</code>和除了业务异常之外的所有异常(<code>RuntimeException</code>和<code>Exception</code>)。</li>
+</ol>
+<blockquote>
+<p>不应该出现的情况:<br>如果进行了抛出异常操作，请不要记录<code>ERROR</code>日志，由最终处理方进行处理：</p>
+</blockquote>
+<p>反例(<strong>不要这么做</strong>):</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span>&#123;</span><br><span class="line">    ....</span><br><span class="line">&#125;<span class="keyword">catch</span>(Exception ex)&#123;</span><br><span class="line">  String errorMessage=String.format(<span class="string">"Error while reading information of user [%s]"</span>,userName);</span><br><span class="line">  logger.error(errorMessage,ex);</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> UserServiceException(errorMessage,ex);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+<h2 id="二、SpringBoot-中-logback"><a href="#二、SpringBoot-中-logback" class="headerlink" title="二、SpringBoot 中 logback"></a>二、<code>SpringBoot</code> 中 <code>logback</code></h2><h3 id="2-1-背景"><a href="#2-1-背景" class="headerlink" title="2.1 背景"></a>2.1 背景</h3><ol>
+<li><code>SpringBoot</code>工程自带<code>logback</code>和<code>slf4j</code>的依赖，所以重点放在编写配置文件上，需要引入什么依赖，日志依赖冲突统统都不需要我们管了;</li>
+<li><code>logback</code>框架会默认加载<code>classpath</code>下命名为<code>logback-spring</code>或<code>logback</code>的配置文件。</li>
+<li>将所有日志都存储在一个文件中文件大小也随着应用的运行越来越大并且不好排查问题，正确的做法应该是将<code>ERROR</code>日志和其他日志分开，并且不同级别的日志根据时间段进行记录存储。</li>
+</ol>
+<h3 id="2-1-logback-spring-xml"><a href="#2-1-logback-spring-xml" class="headerlink" title="2.1 logback-spring.xml"></a>2.1 <code>logback-spring.xml</code></h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version="1.0" encoding="utf-8"?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 属性文件:在配置文件中找到对应的配置项 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">springProperty</span> <span class="attr">scope</span>=<span class="string">"context"</span> <span class="attr">name</span>=<span class="string">"logPath"</span> <span class="attr">source</span>=<span class="string">"logging.path"</span>/&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 输出到控制台 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">appender</span> <span class="attr">name</span>=<span class="string">"CONSOLE-LOG"</span> <span class="attr">class</span>=<span class="string">"ch.qos.logback.core.ConsoleAppender"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">layout</span> <span class="attr">class</span>=<span class="string">"ch.qos.logback.classic.PatternLayout"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">pattern</span>&gt;</span>[%d&#123;yyyy-MM-dd' 'HH:mm:ss.sss&#125;] [%C] [%t] [%L] [%-5p] %m%n<span class="tag">&lt;/<span class="name">pattern</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">layout</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">appender</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 获取比info级别高(包括info级别)但除error级别的日志 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">appender</span> <span class="attr">name</span>=<span class="string">"INFO-LOG"</span> <span class="attr">class</span>=<span class="string">"ch.qos.logback.core.rolling.RollingFileAppender"</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 指定过滤策略 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">filter</span> <span class="attr">class</span>=<span class="string">"ch.qos.logback.classic.filter.LevelFilter"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">level</span>&gt;</span>ERROR<span class="tag">&lt;/<span class="name">level</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">onMatch</span>&gt;</span>DENY<span class="tag">&lt;/<span class="name">onMatch</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">onMismatch</span>&gt;</span>ACCEPT<span class="tag">&lt;/<span class="name">onMismatch</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">filter</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">encoder</span>&gt;</span></span><br><span class="line">            <span class="comment">&lt;!-- 指定日志输出格式 --&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">pattern</span>&gt;</span>[%d&#123;yyyy-MM-dd' 'HH:mm:ss.sss&#125;] [%C] [%t] [%L] [%-5p] %m%n<span class="tag">&lt;/<span class="name">pattern</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">encoder</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">&lt;!-- 指定收集策略：滚动策略--&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">rollingPolicy</span> <span class="attr">class</span>=<span class="string">"ch.qos.logback.core.rolling.TimeBasedRollingPolicy"</span>&gt;</span></span><br><span class="line">            <span class="comment">&lt;!-- 指定生成日志保存地址 --&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">fileNamePattern</span>&gt;</span>$&#123;logPath&#125;/info.%d.log<span class="tag">&lt;/<span class="name">fileNamePattern</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">maxHistory</span>&gt;</span>30<span class="tag">&lt;/<span class="name">maxHistory</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">rollingPolicy</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">appender</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">appender</span> <span class="attr">name</span>=<span class="string">"ERROR-LOG"</span> <span class="attr">class</span>=<span class="string">"ch.qos.logback.core.rolling.RollingFileAppender"</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 指定过滤策略 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">filter</span> <span class="attr">class</span>=<span class="string">"ch.qos.logback.classic.filter.ThresholdFilter"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">level</span>&gt;</span>ERROR<span class="tag">&lt;/<span class="name">level</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">filter</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">encoder</span>&gt;</span></span><br><span class="line">            <span class="comment">&lt;!-- 指定日志输出格式 --&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">pattern</span>&gt;</span>[%d&#123;yyyy-MM-dd' 'HH:mm:ss.sss&#125;] [%C] [%t] [%L] [%-5p] %m%n<span class="tag">&lt;/<span class="name">pattern</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">encoder</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 指定收集策略：滚动策略--&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">rollingPolicy</span> <span class="attr">class</span>=<span class="string">"ch.qos.logback.core.rolling.TimeBasedRollingPolicy"</span>&gt;</span></span><br><span class="line">            <span class="comment">&lt;!--指定生成日志保存地址 --&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">fileNamePattern</span>&gt;</span>$&#123;logPath&#125;/error.%d.log<span class="tag">&lt;/<span class="name">fileNamePattern</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">maxHistory</span>&gt;</span>30<span class="tag">&lt;/<span class="name">maxHistory</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">rollingPolicy</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">appender</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 异步输出 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">appender</span> <span class="attr">name</span>=<span class="string">"ASYNC-INFO"</span> <span class="attr">class</span>=<span class="string">"ch.qos.logback.classic.AsyncAppender"</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">discardingThreshold</span>&gt;</span>0<span class="tag">&lt;/<span class="name">discardingThreshold</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 更改默认的队列的深度,该值会影响性能.默认值为256 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">queueSize</span>&gt;</span>256<span class="tag">&lt;/<span class="name">queueSize</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 添加附加的appender,最多只能添加一个 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">appender-ref</span> <span class="attr">ref</span>=<span class="string">"INFO-LOG"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">appender</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">appender</span> <span class="attr">name</span>=<span class="string">"ASYNC-ERROR"</span> <span class="attr">class</span>=<span class="string">"ch.qos.logback.classic.AsyncAppender"</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">discardingThreshold</span>&gt;</span>0<span class="tag">&lt;/<span class="name">discardingThreshold</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 更改默认的队列的深度,该值会影响性能.默认值为256 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">queueSize</span>&gt;</span>256<span class="tag">&lt;/<span class="name">queueSize</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!-- 添加附加的appender,最多只能添加一个 --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">appender-ref</span> <span class="attr">ref</span>=<span class="string">"ERROR-LOG"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">appender</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 指定最基础的日志输出级别 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">root</span> <span class="attr">level</span>=<span class="string">"info"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">appender-ref</span> <span class="attr">ref</span>=<span class="string">"CONSOLE-LOG"</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">appender-ref</span> <span class="attr">ref</span>=<span class="string">"INFO-LOG"</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">appender-ref</span> <span class="attr">ref</span>=<span class="string">"ERROR-LOG"</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">root</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="三、在Web请求做入参-出参打印"><a href="#三、在Web请求做入参-出参打印" class="headerlink" title="三、在Web请求做入参/出参打印"></a>三、在<code>Web</code>请求做入参/出参打印</h2><h3 id="3-1-项目配置"><a href="#3-1-项目配置" class="headerlink" title="3.1 项目配置"></a>3.1 项目配置</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">server:</span><br><span class="line">  port: 8088</span><br><span class="line"># 日志输出文件地址</span><br><span class="line">logging:</span><br><span class="line">  path: ./springboot-demo-log/logback-demo/logs</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-定义一个切面WebLogAspect"><a href="#3-2-定义一个切面WebLogAspect" class="headerlink" title="3.2 定义一个切面WebLogAspect"></a>3.2 定义一个切面<code>WebLogAspect</code></h3><blockquote>
+<p>详见文中注释</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Aspect</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="meta">@Slf</span>4j</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WebLogAspect</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 进入方法时间戳</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> Long startTime;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 方法结束时间戳(计时)</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> Long endTime;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">WebLogAspect</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 定义请求日志切入点，其切入点表达式有多种匹配方式,这里是指定路径</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Pointcut</span>(<span class="string">"execution(public * cn.van.log.logback.web.controller.*.*(..))"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">webLogPointcut</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 前置通知：</span></span><br><span class="line"><span class="comment">     * 1. 在执行目标方法之前执行，比如请求接口之前的登录验证;</span></span><br><span class="line"><span class="comment">     * 2. 在前置通知中设置请求日志信息，如开始时间，请求参数，注解内容等</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> joinPoint</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> Throwable</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Before</span>(<span class="string">"webLogPointcut()"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doBefore</span><span class="params">(JoinPoint joinPoint)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 接收到请求，记录请求内容</span></span><br><span class="line">        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();</span><br><span class="line">        HttpServletRequest request = attributes.getRequest();</span><br><span class="line">        <span class="comment">//获取请求头中的User-Agent</span></span><br><span class="line">        UserAgent userAgent = UserAgent.parseUserAgentString(request.getHeader(<span class="string">"User-Agent"</span>));</span><br><span class="line">        <span class="comment">//打印请求的内容</span></span><br><span class="line">        startTime = System.currentTimeMillis();</span><br><span class="line">        log.info(<span class="string">"请求开始时间：&#123;&#125;"</span> , LocalDateTime.now());</span><br><span class="line">        log.info(<span class="string">"请求Url : &#123;&#125;"</span> , request.getRequestURL().toString());</span><br><span class="line">        log.info(<span class="string">"请求方式 : &#123;&#125;"</span> , request.getMethod());</span><br><span class="line">        log.info(<span class="string">"请求ip : &#123;&#125;"</span> , request.getRemoteAddr());</span><br><span class="line">        log.info(<span class="string">"请求参数 : &#123;&#125;"</span> , Arrays.toString(joinPoint.getArgs()));</span><br><span class="line">        <span class="comment">// 系统信息</span></span><br><span class="line">        log.info(<span class="string">"浏览器：&#123;&#125;"</span>, userAgent.getBrowser().toString());</span><br><span class="line">        log.info(<span class="string">"浏览器版本：&#123;&#125;"</span>, userAgent.getBrowserVersion());</span><br><span class="line">        log.info(<span class="string">"操作系统: &#123;&#125;"</span>, userAgent.getOperatingSystem().toString());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 返回通知：</span></span><br><span class="line"><span class="comment">     * 1. 在目标方法正常结束之后执行</span></span><br><span class="line"><span class="comment">     * 1. 在返回通知中补充请求日志信息，如返回时间，方法耗时，返回值，并且保存日志信息</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> ret</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> Throwable</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@AfterReturning</span>(returning = <span class="string">"ret"</span>, pointcut = <span class="string">"webLogPointcut()"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doAfterReturning</span><span class="params">(Object ret)</span> <span class="keyword">throws</span> Throwable </span>&#123;</span><br><span class="line">        endTime = System.currentTimeMillis();</span><br><span class="line">        log.info(<span class="string">"请求结束时间：&#123;&#125;"</span> , LocalDateTime.now());</span><br><span class="line">        log.info(<span class="string">"请求耗时：&#123;&#125;ms"</span> , (endTime - startTime));</span><br><span class="line">        <span class="comment">// 处理完请求，返回内容</span></span><br><span class="line">        log.info(<span class="string">"请求返回 : &#123;&#125;"</span> , ret);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 异常通知：</span></span><br><span class="line"><span class="comment">     * 1. 在目标方法非正常结束，发生异常或者抛出异常时执行</span></span><br><span class="line"><span class="comment">     * 1. 在异常通知中设置异常信息，并将其保存</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> throwable</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@AfterThrowing</span>(value = <span class="string">"webLogPointcut()"</span>, throwing = <span class="string">"throwable"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doAfterThrowing</span><span class="params">(Throwable throwable)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// 保存异常日志记录</span></span><br><span class="line">        log.error(<span class="string">"发生异常时间：&#123;&#125;"</span> , LocalDateTime.now());</span><br><span class="line">        log.error(<span class="string">"抛出异常：&#123;&#125;"</span> , throwable.getMessage());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-两个测试接口"><a href="#3-3-两个测试接口" class="headerlink" title="3.3 两个测试接口"></a>3.3 两个测试接口</h3><blockquote>
+<p>包含一个正常请求接口和异常接口。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping</span>(<span class="string">"/log"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TestController</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 测试正常请求</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msg</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@GetMapping</span>(<span class="string">"/normal/&#123;msg&#125;"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getMsg</span><span class="params">(@PathVariable String msg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> msg;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 测试抛异常</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@GetMapping</span>(<span class="string">"/exception/&#123;msg&#125;"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getException</span><span class="params">(@PathVariable String msg)</span></span>&#123;</span><br><span class="line">        <span class="comment">// 故意造出一个异常</span></span><br><span class="line">        Integer.parseInt(<span class="string">"abc123"</span>);</span><br><span class="line">        <span class="keyword">return</span> msg;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-启动项目测试"><a href="#3-4-启动项目测试" class="headerlink" title="3.4 启动项目测试"></a>3.4 启动项目测试</h3><ul>
+<li>正常请求</li>
+</ul>
+<p>打开浏览器，访问<a href="http://localhost:8088/log/normal/hello" target="_blank" rel="noopener">http://localhost:8088/log/normal/hello</a></p>
+<p>日志打印如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [65] [INFO ] 请求开始时间：2019-02-24T22:37:50.892</span><br><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [66] [INFO ] 请求Url : http://localhost:8088/log/normal/hello</span><br><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [67] [INFO ] 请求方式 : GET</span><br><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [68] [INFO ] 请求ip : 0:0:0:0:0:0:0:1</span><br><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [70] [INFO ] 请求参数 : [hello]</span><br><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [72] [INFO ] 浏览器：CHROME</span><br><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [73] [INFO ] 浏览器版本：76.0.3809.100</span><br><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [74] [INFO ] 操作系统: MAC_OS_X</span><br><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [88] [INFO ] 请求结束时间：2019-02-24T22:37:50.901</span><br><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [89] [INFO ] 请求耗时：14</span><br><span class="line">[2019-02-24 22:37:50.050] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-1] [91] [INFO ] 请求返回 : hello</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>异常请求</li>
+</ul>
+<p>访问：<a href="http://localhost:8088/log/exception/hello" target="_blank" rel="noopener">http://localhost:8088/log/exception/hello</a></p>
+<p>日志打印如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[2019-02-24 22:39:57.057] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-9] [65] [INFO ] 请求开始时间：2019-02-24T22:39:57.728</span><br><span class="line">[2019-02-24 22:39:57.057] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-9] [66] [INFO ] 请求Url : http://localhost:8088/log/exception/hello</span><br><span class="line">[2019-02-24 22:39:57.057] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-9] [67] [INFO ] 请求方式 : GET</span><br><span class="line">[2019-02-24 22:39:57.057] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-9] [68] [INFO ] 请求ip : 0:0:0:0:0:0:0:1</span><br><span class="line">[2019-02-24 22:39:57.057] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-9] [70] [INFO ] 请求参数 : [hello]</span><br><span class="line">[2019-02-24 22:39:57.057] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-9] [72] [INFO ] 浏览器：CHROME</span><br><span class="line">[2019-02-24 22:39:57.057] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-9] [73] [INFO ] 浏览器版本：76.0.3809.100</span><br><span class="line">[2019-02-24 22:39:57.057] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-9] [74] [INFO ] 操作系统: MAC_OS_X</span><br><span class="line">[2019-02-24 22:39:57.057] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-9] [104] [ERROR] 发生异常时间：2019-02-24T22:39:57.731</span><br><span class="line">[2019-02-24 22:39:57.057] [cn.van.log.aop.logback.WebLogAspect] [http-nio-8088-exec-9] [105] [ERROR] 抛出异常：For input string: "abc123"</span><br><span class="line">[2019-02-24 22:39:57.057] [org.apache.juli.logging.DirectJDKLog] [http-nio-8088-exec-9] [175] [ERROR] Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.NumberFormatException: For input string: "abc123"] with root cause</span><br><span class="line">java.lang.NumberFormatException: For input string: "abc123"</span><br></pre></td></tr></table></figure>
+
+<h3 id="四、总结"><a href="#四、总结" class="headerlink" title="四、总结"></a>四、总结</h3><ol>
+<li><a href="https://github.com/vanDusty/SpringBoot-Home/tree/master/springboot-demo-log/logback-demo" target="_blank" rel="noopener">Github 示例代码</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/images/dusty_blog.png" alt="Van wechat" style="width: 200px; max-width: 100%;"/>
+    <div>最新文章，欢迎您扫一扫上面的微信公众号！</div>
+</div>
+
+      </div>
+    
+
+     <div>
+        
+          <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------　　　　本文结束　<i class="fa fa-heart"></i>　感谢您的阅读　　　　-------------</div>
+    
+</div>
+
+        
+      </div>
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E6%97%A5%E5%BF%97/" rel="tag"><i class="fa fa-tag"></i> 日志</a>
+              <a href="/tags/AOP/" rel="tag"><i class="fa fa-tag"></i> AOP</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/01/29/407a3637.html" rel="prev" title="Spring Boot 配置 Swagger2">
+      <i class="fa fa-chevron-left"></i> Spring Boot 配置 Swagger2
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/02/21/69fe966b.html" rel="next" title="Spring Boot 处理跨域请求">
+      Spring Boot 处理跨域请求 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、Logback"><span class="nav-number">1.</span> <span class="nav-text">一、Logback</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-背景"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 背景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-日志级别"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 日志级别</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-TRACE"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.2.1 TRACE</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-DEBUG"><span class="nav-number">1.2.2.</span> <span class="nav-text">1.2.2 DEBUG</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-3-INFO"><span class="nav-number">1.2.3.</span> <span class="nav-text">1.2.3 INFO</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-4-WARN"><span class="nav-number">1.2.4.</span> <span class="nav-text">1.2.4 WARN</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-5-ERROR"><span class="nav-number">1.2.5.</span> <span class="nav-text">1.2.5 ERROR</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、SpringBoot-中-logback"><span class="nav-number">2.</span> <span class="nav-text">二、SpringBoot 中 logback</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-背景"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 背景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-logback-spring-xml"><span class="nav-number">2.2.</span> <span class="nav-text">2.1 logback-spring.xml</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、在Web请求做入参-出参打印"><span class="nav-number">3.</span> <span class="nav-text">三、在Web请求做入参&#x2F;出参打印</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-项目配置"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 项目配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-定义一个切面WebLogAspect"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 定义一个切面WebLogAspect</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-两个测试接口"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 两个测试接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-启动项目测试"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 启动项目测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#四、总结"><span class="nav-number">3.5.</span> <span class="nav-text">四、总结</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <a href="/">
+      <img class="site-author-image" itemprop="image" alt="Van"
+        src="/images/advator.jpg">
+    </a>
+  <p class="site-author-name" itemprop="name">Van</p>
+  <div class="site-description" itemprop="description">我有一杯酒，可以慰风尘</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">51</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">50</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/vanDusty" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;vanDusty" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:vanzhangf@gmail.com" title="E-Mail → mailto:vanzhangf@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.cnblogs.com/vandusty" title="博客园 → https:&#x2F;&#x2F;www.cnblogs.com&#x2F;vandusty" rel="noopener" target="_blank"><i class="fa fa-fw fa-send-o"></i>博客园</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://juejin.im/user/5d5ea68e6fb9a06afa328f56/posts" title="掘金 → https:&#x2F;&#x2F;juejin.im&#x2F;user&#x2F;5d5ea68e6fb9a06afa328f56&#x2F;posts" rel="noopener" target="_blank"><i class="fa fa-fw fa-heartbeat"></i>掘金</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">浙ICP备18016950号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2016 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heartbeat"></i>
+  </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">359k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">10:52</span>
+</div><style>
+    .custom-sidebar {
+        margin-top: 20px;
+    }
+    .custom-sidebar-title {
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+        border-top: 1px dotted #ccc;
+    }
+</style>
+<div class="custom-sidebar">
+    <div class="custom-sidebar-title">
+        <a href="https://www.upyun.com/?utm_source=lianmeng&utm_medium=referral" target="_blank">
+            <img src="/images/youpai.png" alt="又拍云联盟" width="30"/>
+        </a>
+    </div>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var bp = document.createElement('script');
+      var curProtocol = window.location.protocol.split(':')[0];
+      bp.src = (curProtocol === 'https') ? 'https://zz.bdstatic.com/linksubmit/push.js' : 'http://push.zhanzhang.baidu.com/push.js';
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(bp, s);
+    })();
+  </script>
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body>
+</html>

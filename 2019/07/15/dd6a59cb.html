@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.dusty.vip","root":"/","scheme":"Pisces","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="一、思路 后端生成数字和字母混搭的指定位数的验证码，存储在Redis中； 将生成的验证码画成图片并转换成base64字符，和Redis 验证码的key 一块返给前端； 前端登录时候，把验证码传给后端，后端    取出 Redis中的值进行对比。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring Boot 图片验证码及校验">
+<meta property="og:url" content="https://www.dusty.vip/2019/07/15/dd6a59cb.html">
+<meta property="og:site_name" content="风尘博客">
+<meta property="og:description" content="一、思路 后端生成数字和字母混搭的指定位数的验证码，存储在Redis中； 将生成的验证码画成图片并转换成base64字符，和Redis 验证码的key 一块返给前端； 前端登录时候，把验证码传给后端，后端    取出 Redis中的值进行对比。">
+<meta property="article:published_time" content="2019-07-14T16:04:04.000Z">
+<meta property="article:modified_time" content="2020-07-05T14:25:46.671Z">
+<meta property="article:author" content="Van">
+<meta property="article:tag" content="验证码">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://www.dusty.vip/2019/07/15/dd6a59cb.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>Spring Boot 图片验证码及校验 | 风尘博客</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?ddcd15db9f34dd2fff4f8efe4962cd1c";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">风尘博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">风尘博客</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/vanDusty" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2019/07/15/dd6a59cb.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spring Boot 图片验证码及校验
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-07-15 00:04:04" itemprop="dateCreated datePublished" datetime="2019-07-15T00:04:04+08:00">2019-07-15</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>12 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="一、思路"><a href="#一、思路" class="headerlink" title="一、思路"></a>一、思路</h2><ol>
+<li>后端生成数字和字母混搭的指定位数的验证码，存储在<code>Redis</code>中；</li>
+<li>将生成的验证码画成图片并转换成<code>base64</code>字符，和<code>Redis</code> 验证码的<code>key</code> 一块返给前端；</li>
+<li>前端登录时候，把验证码传给后端，后端    取出 <code>Redis</code>中的值进行对比。</li>
+</ol>
+<a id="more"></a>
+
+<h2 id="二、示例代码"><a href="#二、示例代码" class="headerlink" title="二、示例代码"></a>二、示例代码</h2><h3 id="2-1-项目依赖和配置"><a href="#2-1-项目依赖和配置" class="headerlink" title="2.1 项目依赖和配置"></a>2.1 项目依赖和配置</h3><ul>
+<li><code>pom.xml</code></li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-web<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-test<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- redis --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-data-redis<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.commons<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>commons-pool2<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>application.yml</code></li>
+</ul>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">redis:</span></span><br><span class="line">    <span class="attr">host:</span> <span class="number">47.98</span><span class="number">.178</span><span class="number">.84</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">6379</span></span><br><span class="line">    <span class="attr">database:</span> <span class="number">0</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">password</span></span><br><span class="line">    <span class="attr">timeout:</span> <span class="string">60s</span>  <span class="comment"># 连接超时时间，2.0 中该参数的类型为Duration，这里在配置的时候需要指明单位</span></span><br><span class="line">    <span class="comment"># 连接池配置，2.0中直接使用jedis或者lettuce配置连接池（使用lettuce，依赖中必须包含commons-pool2包）</span></span><br><span class="line">    <span class="attr">lettuce:</span></span><br><span class="line">      <span class="attr">pool:</span></span><br><span class="line">        <span class="comment"># 最大空闲连接数</span></span><br><span class="line">        <span class="attr">max-idle:</span> <span class="number">500</span></span><br><span class="line">        <span class="comment"># 最小空闲连接数</span></span><br><span class="line">        <span class="attr">min-idle:</span> <span class="number">50</span></span><br><span class="line">        <span class="comment"># 等待可用连接的最大时间，负数为不限制</span></span><br><span class="line">        <span class="attr">max-wait:</span>  <span class="string">-1s</span></span><br><span class="line">        <span class="comment"># 最大活跃连接数，负数为不限制</span></span><br><span class="line">        <span class="attr">max-active:</span> <span class="number">-1</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-生成图片验证码工具类"><a href="#2-2-生成图片验证码工具类" class="headerlink" title="2.2 生成图片验证码工具类"></a>2.2 生成图片验证码工具类</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ImgValidateCodeUtil</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Random random = <span class="keyword">new</span> Random();</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 验证码的宽</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> width = <span class="number">160</span>;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 验证码的高</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> height = <span class="number">40</span>;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 验证码的干扰线数量</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> lineSize = <span class="number">30</span>;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 验证码词典</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> String randomString = <span class="string">"0123456789abcdefghijklmnopqrstuvwxyz"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取字体</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> Font <span class="title">getFont</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Font(<span class="string">"Times New Roman"</span>, Font.ROMAN_BASELINE, <span class="number">40</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取颜色</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> fc</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> bc</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> Color <span class="title">getRandomColor</span><span class="params">(<span class="keyword">int</span> fc, <span class="keyword">int</span> bc)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        fc = Math.min(fc, <span class="number">255</span>);</span><br><span class="line">        bc = Math.min(bc, <span class="number">255</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">int</span> r = fc + random.nextInt(bc - fc - <span class="number">16</span>);</span><br><span class="line">        <span class="keyword">int</span> g = fc + random.nextInt(bc - fc - <span class="number">14</span>);</span><br><span class="line">        <span class="keyword">int</span> b = fc + random.nextInt(bc - fc - <span class="number">12</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Color(r, g, b);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 绘制干扰线</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> g</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">drawLine</span><span class="params">(Graphics g)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> x = random.nextInt(width);</span><br><span class="line">        <span class="keyword">int</span> y = random.nextInt(height);</span><br><span class="line">        <span class="keyword">int</span> xl = random.nextInt(<span class="number">20</span>);</span><br><span class="line">        <span class="keyword">int</span> yl = random.nextInt(<span class="number">10</span>);</span><br><span class="line">        g.drawLine(x, y, x + xl, y + yl);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取随机字符</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> num</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> String <span class="title">getRandomString</span><span class="params">(<span class="keyword">int</span> num)</span> </span>&#123;</span><br><span class="line">        num = num &gt; <span class="number">0</span> ? num : randomString.length();</span><br><span class="line">        <span class="keyword">return</span> String.valueOf(randomString.charAt(random.nextInt(num)));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 绘制字符串</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> g</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> randomStr</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> i</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> String <span class="title">drawString</span><span class="params">(Graphics g, String randomStr, <span class="keyword">int</span> i)</span> </span>&#123;</span><br><span class="line">        g.setFont(getFont());</span><br><span class="line">        g.setColor(getRandomColor(<span class="number">108</span>, <span class="number">190</span>));</span><br><span class="line">        String rand = getRandomString(random.nextInt(randomString.length()));</span><br><span class="line">        randomStr += rand;</span><br><span class="line">        g.translate(random.nextInt(<span class="number">3</span>), random.nextInt(<span class="number">6</span>));</span><br><span class="line">        g.drawString(rand, <span class="number">40</span> * i + <span class="number">10</span>, <span class="number">25</span>);</span><br><span class="line">        <span class="keyword">return</span> randomStr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 生成随机图片，返回 base64 字符串</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span></span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Map&lt;String, String&gt; <span class="title">getImgCodeBaseCode</span><span class="params">(<span class="keyword">int</span> length)</span> </span>&#123;</span><br><span class="line">        Map&lt;String, String&gt; result = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">        <span class="comment">// BufferedImage类是具有缓冲区的Image类,Image类是用于描述图像信息的类</span></span><br><span class="line">        BufferedImage image = <span class="keyword">new</span> BufferedImage(width, height, BufferedImage.TYPE_INT_BGR);</span><br><span class="line">        Graphics g = image.getGraphics();</span><br><span class="line">        g.fillRect(<span class="number">0</span>, <span class="number">0</span>, width, height);</span><br><span class="line">        <span class="comment">// 获取颜色</span></span><br><span class="line">        g.setColor(getRandomColor(<span class="number">105</span>, <span class="number">189</span>));</span><br><span class="line">        <span class="comment">// 获取字体</span></span><br><span class="line">        g.setFont(getFont());</span><br><span class="line">        <span class="comment">// 绘制干扰线</span></span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; lineSize; i++) &#123;</span><br><span class="line">            drawLine(g);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 绘制随机字符</span></span><br><span class="line">        String randomCode = <span class="string">""</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; length; i++) &#123;</span><br><span class="line">            randomCode = drawString(g, randomCode, i);</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(<span class="string">"验证码是："</span> + randomCode);</span><br><span class="line">        g.dispose();</span><br><span class="line"></span><br><span class="line">        result.put(<span class="string">"imgCode"</span>, randomCode);</span><br><span class="line"></span><br><span class="line">        String base64Code = <span class="string">""</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">//返回 base64</span></span><br><span class="line">            ByteArrayOutputStream bos = <span class="keyword">new</span> ByteArrayOutputStream();</span><br><span class="line">            ImageIO.write(image, <span class="string">"PNG"</span>, bos);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">byte</span>[] bytes = bos.toByteArray();</span><br><span class="line">            Base64.Encoder encoder = Base64.getEncoder();</span><br><span class="line">            base64Code = encoder.encodeToString(bytes);</span><br><span class="line"></span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">        result.put(<span class="string">"data"</span>, <span class="string">"data:image/png;base64,"</span> + base64Code);</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>说明：</li>
+</ul>
+<ol>
+<li>为了方便，本案例中：验证码的字体/宽/高/干扰线数量等参数直接写死了，当然，你可以放在配置文件中做成可配置项；</li>
+<li>同样是为了方便，本案例中：验证码词典直接取的是0-9数字以及所有小写字母，可根据自己的需要更改或者也可作为可配置项。</li>
+</ol>
+<h3 id="2-3-测试接口"><a href="#2-3-测试接口" class="headerlink" title="2.3 测试接口"></a>2.3 测试接口</h3><p>为了便于测试，我这里封装了几个<code>RestFul</code>接口。(存/取缓存等业务操作，应该放在业务层中，这里也是为了偷懒，直接放在控制层里面了)</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping</span>(<span class="string">"/code"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ValidateCodeController</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    StringRedisTemplate redisTemplate;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 生成图片验证码</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@GetMapping</span>(<span class="string">"/getImgCode"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Map&lt;String, String&gt; <span class="title">getImgCode</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        Map&lt;String, String&gt; result = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 获取 4位数验证码</span></span><br><span class="line">            result= ImgValidateCodeUtil.getImgCodeBaseCode(<span class="number">4</span>);</span><br><span class="line">            <span class="comment">// 将验证码存入redis 中（有效时长5分钟）</span></span><br><span class="line">            cacheImgCode(result);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            System.out.println(e);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 校验验证码</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> imgCodeKey</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> imgCode</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@GetMapping</span>(<span class="string">"/checkImgCode"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">checkImgCode</span><span class="params">(String imgCodeKey, String imgCode)</span> </span>&#123;</span><br><span class="line">        String cacheCode = redisTemplate.opsForValue().get(imgCodeKey);</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">null</span> == cacheCode) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">"图片验证码已过期，请重新获取"</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (cacheCode.equals(imgCode.toLowerCase())) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">"验证码输入正确"</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"验证码输入错误"</span>;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 将验证码存入redis 中</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> result</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">cacheImgCode</span><span class="params">(Map&lt;String, String&gt; result)</span> </span>&#123;</span><br><span class="line">        String imgCode = result.get(<span class="string">"imgCode"</span>);</span><br><span class="line">        UUID randomUUID = UUID.randomUUID();</span><br><span class="line">        String imgCodeKey = randomUUID.toString();</span><br><span class="line">        System.out.println(<span class="string">"imgCodeKey:"</span> + imgCodeKey);</span><br><span class="line">        <span class="comment">// 图片验证码有效时间 ：5 分钟</span></span><br><span class="line">        redisTemplate.opsForValue().set(imgCodeKey, imgCode, <span class="number">5</span>, TimeUnit.MINUTES);</span><br><span class="line">        result.put(<span class="string">"imgCodeKey"</span>, imgCodeKey);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、测试及总结"><a href="#三、测试及总结" class="headerlink" title="三、测试及总结"></a>三、测试及总结</h2><h3 id="3-1-获取图片验证码"><a href="#3-1-获取图片验证码" class="headerlink" title="3.1 获取图片验证码"></a>3.1 获取图片验证码</h3><ul>
+<li>请求类型： <code>GET</code></li>
+<li>请求地址： <a href="http://localhost:8080/code/getImgCode" target="_blank" rel="noopener">获取图片验证码url</a></li>
+<li>返回结果： </li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAAAoCAIAAAD2TmbPAAACvElEQVR42u3cuWrEMBAGYL1zCKTZPl2qFCEsgbR5SMUgWIyO8Rz/yJLWxk02XiH78+gY2RuiYXv7+s32eG2DbQGla6zH7f4KOR9UOc8O7BG4QOOL2QTs1CxjVS5mJbBrpwsnuYwXB14plN9/bhpg0cn76SYGPwxjyZ/fL9ve/ybeUKu7LIL5J99hUrSXtpBk5aSi1AWeAtzSFTEH/j1e6pbzYIj6vhpVJxQ5s7SkiwKuGpcVO9RlGgd+U1bl9DBuVeD+95H2RyUfn2y7U8/30HUFlsauHphg5gPDW+89ZALOPnFi3uueAsyx14+iM2aasGVsHDS1IIndSbc/MDO+rdOkxMwJ0NYxlr5TAQwxLnWx2MQFOWTLgOlry50HK4Czw+DMxH/XBs6M6WuLBOYcpmMuCbNC+jTU2GGzMekB64NTVVDAutMr8eYChifUkH0wNoKdgKvHDDhNgjCDB1kewNJTreLRQTz1PBgVvlG02ICNYFHucDFgYyj3AOYMpEW5QyNwmdhCdXhOwGpmfS66PzCfmROdWXorghYfXYEVzNIFJdl6MB9Yd5KHWWgCuBXlrTKlKw1+wPz6KFYMTQv+9vBlMquB6WvHCZ1uwB66EfhEB3zFcH/ppcCt9bjDEV952IDAom9hnqp0fcxDAZyJcgbtrTtgEGBCl17hhj0X7ffUe3VxkNatNs6c0dyYESyK3cw7xBk2/mIDc/DCZ64C9/TWtcyACD4dmJ9/1mUV0recVpOAuvQBiwD7JQhPBObrrgZsNLMbjzAp4syaZu2Dy6FTN+P+U17jo3dzR3DnUB5Td0Hg1sAYPv+eXXfiCFZMfsZkNr5yseY0yWO07Md8WILrnRQmchVNfOFxhmWm/7yAfV9X8WbOkuSurfQETfRoI2RItJVZcacgnqMPXvhF/ZL5GYHj6j/G4NdW/wMQ1li94E5Z4gAAAABJRU5ErkJggg==",</span><br><span class="line">    "imgCodeKey": "26393d5c-5d56-4ac3-bf38-c2cac1f33181",</span><br><span class="line">    "imgCode": "6pt2"</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>说明：验证码是<code>6pt2</code>，前端可以直接拿<code>data</code>中的数值直接展示，即为图片验证码，如下：</li>
+</ul>
+<img src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAAAoCAIAAAD2TmbPAAACvElEQVR42u3cuWrEMBAGYL1zCKTZPl2qFCEsgbR5SMUgWIyO8Rz/yJLWxk02XiH78+gY2RuiYXv7+s32eG2DbQGla6zH7f4KOR9UOc8O7BG4QOOL2QTs1CxjVS5mJbBrpwsnuYwXB14plN9/bhpg0cn76SYGPwxjyZ/fL9ve/ybeUKu7LIL5J99hUrSXtpBk5aSi1AWeAtzSFTEH/j1e6pbzYIj6vhpVJxQ5s7SkiwKuGpcVO9RlGgd+U1bl9DBuVeD+95H2RyUfn2y7U8/30HUFlsauHphg5gPDW+89ZALOPnFi3uueAsyx14+iM2aasGVsHDS1IIndSbc/MDO+rdOkxMwJ0NYxlr5TAQwxLnWx2MQFOWTLgOlry50HK4Czw+DMxH/XBs6M6WuLBOYcpmMuCbNC+jTU2GGzMekB64NTVVDAutMr8eYChifUkH0wNoKdgKvHDDhNgjCDB1kewNJTreLRQTz1PBgVvlG02ICNYFHucDFgYyj3AOYMpEW5QyNwmdhCdXhOwGpmfS66PzCfmROdWXorghYfXYEVzNIFJdl6MB9Yd5KHWWgCuBXlrTKlKw1+wPz6KFYMTQv+9vBlMquB6WvHCZ1uwB66EfhEB3zFcH/ppcCt9bjDEV952IDAom9hnqp0fcxDAZyJcgbtrTtgEGBCl17hhj0X7ffUe3VxkNatNs6c0dyYESyK3cw7xBk2/mIDc/DCZ64C9/TWtcyACD4dmJ9/1mUV0recVpOAuvQBiwD7JQhPBObrrgZsNLMbjzAp4syaZu2Dy6FTN+P+U17jo3dzR3DnUB5Td0Hg1sAYPv+eXXfiCFZMfsZkNr5yseY0yWO07Md8WILrnRQmchVNfOFxhmWm/7yAfV9X8WbOkuSurfQETfRoI2RItJVZcacgnqMPXvhF/ZL5GYHj6j/G4NdW/wMQ1li94E5Z4gAAAABJRU5ErkJggg=="/>
+
+<h3 id="3-2-校验图片验证码"><a href="#3-2-校验图片验证码" class="headerlink" title="3.2 校验图片验证码"></a>3.2 校验图片验证码</h3><ul>
+<li><p>请求类型： <code>GET</code></p>
+</li>
+<li><p>请求地址： <a href="http://localhost:8080/code/checkImgCode?imgCode=6pt2&imgCodeKey=26393d5c-5d56-4ac3-bf38-c2cac1f33181" target="_blank" rel="noopener">校验图片验证码url</a></p>
+</li>
+<li><p>返回结果：验证码输入正确/验证码输入错误/图片验证码已过期，请重新获取</p>
+</li>
+<li><p>说明：前端需将请求验证码时返回的<code>imgCodeKey</code> 字段的值以及用户数据的验证码请求到后端，进行校验；验证码有效期为五分钟，可按照实际需求配置。</p>
+</li>
+</ul>
+<p><a href="https://github.com/vanDusty/SpringBoot-Home/tree/master/springboot-demo-list/imgValidateCode" target="_blank" rel="noopener">Github 示例代码</a></p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/images/dusty_blog.png" alt="Van wechat" style="width: 200px; max-width: 100%;"/>
+    <div>最新文章，欢迎您扫一扫上面的微信公众号！</div>
+</div>
+
+      </div>
+    
+
+     <div>
+        
+          <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------　　　　本文结束　<i class="fa fa-heart"></i>　感谢您的阅读　　　　-------------</div>
+    
+</div>
+
+        
+      </div>
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E9%AA%8C%E8%AF%81%E7%A0%81/" rel="tag"><i class="fa fa-tag"></i> 验证码</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/07/11/985e0324.html" rel="prev" title="Spring Boot 整合阿里云短信验证码">
+      <i class="fa fa-chevron-left"></i> Spring Boot 整合阿里云短信验证码
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/07/21/b4fd6b8b.html" rel="next" title="高并发下浏览量入库设计">
+      高并发下浏览量入库设计 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、思路"><span class="nav-number">1.</span> <span class="nav-text">一、思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、示例代码"><span class="nav-number">2.</span> <span class="nav-text">二、示例代码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-项目依赖和配置"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 项目依赖和配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-生成图片验证码工具类"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 生成图片验证码工具类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-测试接口"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 测试接口</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、测试及总结"><span class="nav-number">3.</span> <span class="nav-text">三、测试及总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-获取图片验证码"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 获取图片验证码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-校验图片验证码"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 校验图片验证码</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <a href="/">
+      <img class="site-author-image" itemprop="image" alt="Van"
+        src="/images/advator.jpg">
+    </a>
+  <p class="site-author-name" itemprop="name">Van</p>
+  <div class="site-description" itemprop="description">我有一杯酒，可以慰风尘</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">51</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">50</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/vanDusty" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;vanDusty" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:vanzhangf@gmail.com" title="E-Mail → mailto:vanzhangf@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.cnblogs.com/vandusty" title="博客园 → https:&#x2F;&#x2F;www.cnblogs.com&#x2F;vandusty" rel="noopener" target="_blank"><i class="fa fa-fw fa-send-o"></i>博客园</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://juejin.im/user/5d5ea68e6fb9a06afa328f56/posts" title="掘金 → https:&#x2F;&#x2F;juejin.im&#x2F;user&#x2F;5d5ea68e6fb9a06afa328f56&#x2F;posts" rel="noopener" target="_blank"><i class="fa fa-fw fa-heartbeat"></i>掘金</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">浙ICP备18016950号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2016 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heartbeat"></i>
+  </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">359k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">10:52</span>
+</div><style>
+    .custom-sidebar {
+        margin-top: 20px;
+    }
+    .custom-sidebar-title {
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+        border-top: 1px dotted #ccc;
+    }
+</style>
+<div class="custom-sidebar">
+    <div class="custom-sidebar-title">
+        <a href="https://www.upyun.com/?utm_source=lianmeng&utm_medium=referral" target="_blank">
+            <img src="/images/youpai.png" alt="又拍云联盟" width="30"/>
+        </a>
+    </div>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var bp = document.createElement('script');
+      var curProtocol = window.location.protocol.split(':')[0];
+      bp.src = (curProtocol === 'https') ? 'https://zz.bdstatic.com/linksubmit/push.js' : 'http://push.zhanzhang.baidu.com/push.js';
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(bp, s);
+    })();
+  </script>
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body>
+</html>
