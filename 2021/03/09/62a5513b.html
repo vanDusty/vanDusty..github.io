@@ -26,23 +26,23 @@
 <meta property="og:url" content="https://www.dusty.vip/2021/03/09/62a5513b.html">
 <meta property="og:site_name" content="风尘博客">
 <meta property="og:description" content="工作流（Workflow），指业务过程的部分或整体在计算机应用环境下的自动化，是对工作流程及其各操作步骤之间业务规则的抽象、概括描述。">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-01.png">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-02.png">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-03.png">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-04.png">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-05.png">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-06.png">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-07.png">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-08.png">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-09.png">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-10.png">
-<meta property="og:image" content="https://www.dusty.vip/2021/03/img/Workflow-11.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-01.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-02.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-03.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-04.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-05.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-06.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-07.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-08.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-09.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-10.png">
+<meta property="og:image" content="https://img.dusty.vip/blog/Workflow-11.png">
 <meta property="article:published_time" content="2021-03-09T13:02:39.000Z">
-<meta property="article:modified_time" content="2021-09-09T06:18:09.141Z">
+<meta property="article:modified_time" content="2021-09-09T06:38:35.118Z">
 <meta property="article:author" content="Van">
 <meta property="article:tag" content="工作流">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://www.dusty.vip/2021/03/img/Workflow-01.png">
+<meta name="twitter:image" content="https://img.dusty.vip/blog/Workflow-01.png">
 
 <link rel="canonical" href="https://www.dusty.vip/2021/03/09/62a5513b.html">
 
@@ -279,7 +279,7 @@
 </blockquote>
 <h4 id="1-2-工作流有什么用？"><a href="#1-2-工作流有什么用？" class="headerlink" title="1.2 工作流有什么用？"></a>1.2 工作流有什么用？</h4><p>工作流主要解决的主要问题是：为了实现某个业务目标，利用计算机在多个参与者之间按某种预定规则自动传递文档、信息或者任务。</p>
 <h3 id="二、打怪升级史"><a href="#二、打怪升级史" class="headerlink" title="二、打怪升级史"></a>二、打怪升级史</h3><h4 id="2-1-第一关"><a href="#2-1-第一关" class="headerlink" title="2.1 第一关"></a>2.1 第一关</h4><p>第一版，从<code>0</code>到<code>1</code>就可以了，先做个简单的工作流引擎。</p>
-<p><img src="../img/Workflow-01.png" alt="Workflow-01"></p>
+<p><img src="https://img.dusty.vip/blog/Workflow-01.png" alt="Workflow-01"></p>
 <ul>
 <li>按顺序添加任意个审批人组成一个链表，最后加一个结束节点；</li>
 <li>记录当前审批人，当审批完后，审批人向后移动一位；</li>
@@ -288,7 +288,7 @@
 <h4 id="2-2-第二关-支持会签节点"><a href="#2-2-第二关-支持会签节点" class="headerlink" title="2.2 第二关 - 支持会签节点"></a>2.2 第二关 - 支持会签节点</h4><blockquote>
 <p>会签节点就是一个大节点，里面有很多审批人，当这个大节点里的所有人都审批通过后，才能进入下一个节点。</p>
 </blockquote>
-<p><img src="../img/Workflow-02.png" alt="Workflow-02"></p>
+<p><img src="https://img.dusty.vip/blog/Workflow-02.png" alt="Workflow-02"></p>
 <ul>
 <li>结构上做出如下调整:</li>
 </ul>
@@ -311,25 +311,25 @@
 <li><code>Waiting</code>: 只有复杂节点有该状态，表示在等待子节点审批。</li>
 </ol>
 <p>借助上述状态，如下是带会签节点的工作流审批过程：</p>
-<p><img src="../img/Workflow-03.png" alt="Workflow-03"></p>
+<p><img src="https://img.dusty.vip/blog/Workflow-03.png" alt="Workflow-03"></p>
 <h4 id="2-3-第三关-支持并行节点"><a href="#2-3-第三关-支持并行节点" class="headerlink" title="2.3 第三关 - 支持并行节点"></a>2.3 第三关 - 支持并行节点</h4><p>并行节点是一个包含很多审批人的大节点，这个大节点里任何一个人审批通过，则该节点就完成。</p>
 <blockquote>
 <p>并行节点是一个复杂节点，该节点激活时，任何一个子节点都可以进行审批，且任何一个子节点是完成状态时，该节点完成。所以又加了一个状态。</p>
 </blockquote>
 <p><code>Skip</code>:当一个并行节点的子节点状态为非(<code>Ready</code>, <code>Waiting</code>)时，其它兄弟节点及其子节点的状态被置为<code>Skip</code>。</p>
-<p><img src="../img/Workflow-04.png" alt="Workflow-04"></p>
+<p><img src="https://img.dusty.vip/blog/Workflow-04.png" alt="Workflow-04"></p>
 <blockquote>
 <p>举个栗子：A、B、C 三人都可以审批一个流程，该节点只要三人中的任何一个审批都算完成。现在A审批了，A的状态就是已完成审批（<code>Complete</code>），B和C就无需审批了，B和C就是<code>Skip</code>状态。</p>
 </blockquote>
 <h4 id="2-4-第四关-节点支持嵌套"><a href="#2-4-第四关-节点支持嵌套" class="headerlink" title="2.4 第四关 - 节点支持嵌套"></a>2.4 第四关 - 节点支持嵌套</h4><blockquote>
 <p>比如会签节点里有个并行节点，并行节点里又有个复杂节点，要可以嵌套任意层。</p>
 </blockquote>
-<p><img src="../img/Workflow-05.png" alt="Workflow-05"></p>
+<p><img src="https://img.dusty.vip/blog/Workflow-05.png" alt="Workflow-05"></p>
 <ul>
 <li>已经支持，能无限扩展的树形结构可以支持任意复杂流程。</li>
 </ul>
 <h4 id="2-5-第五关-支持条件节点"><a href="#2-5-第五关-支持条件节点" class="headerlink" title="2.5 第五关 - 支持条件节点"></a>2.5 第五关 - 支持条件节点</h4><p>工作流附带一个表单，要根据表单的内容确定下一步进入哪个分支。</p>
-<p><img src="../img/Workflow-06.png" alt="Workflow-06"></p>
+<p><img src="https://img.dusty.vip/blog/Workflow-06.png" alt="Workflow-06"></p>
 <blockquote>
 <p>条件节点类似并行节点，只不过只有满足条件的子节点才能进入接下来的审批。</p>
 </blockquote>
@@ -339,14 +339,14 @@
 <li>第二种：审批人从表单中读取；</li>
 <li>第三种：根据发起人和一个映射函数，算出审批人。比如 get_主管(“钱某”) 得到钱某的主管 李某。</li>
 </ol>
-<p><img src="../img/Workflow-07.png" alt="Workflow-07"></p>
+<p><img src="https://img.dusty.vip/blog/Workflow-07.png" alt="Workflow-07"></p>
 <h4 id="2-7-第七关-驳回"><a href="#2-7-第七关-驳回" class="headerlink" title="2.7 第七关 - 驳回"></a>2.7 第七关 - 驳回</h4><p>要实现驳回到发起人的功能，相当于一切从头开始。</p>
 <blockquote>
 <p>只有<code>Ready</code>状态的节点有权利驳回。（就像只有<code>Ready</code>状态的节点有权利审批一样）。</p>
 </blockquote>
-<p><img src="../img/Workflow-08.png" alt="Workflow-08"></p>
+<p><img src="https://img.dusty.vip/blog/Workflow-08.png" alt="Workflow-08"></p>
 <h3 id="2-8-第八关-时间限制"><a href="#2-8-第八关-时间限制" class="headerlink" title="2.8 第八关 - 时间限制"></a>2.8 第八关 - 时间限制</h3><p>在普通节点加一个时间限制，要是在规定时间内没完成就显示已超时。</p>
-<p><img src="../img/Workflow-09.png" alt="Workflow-09"></p>
+<p><img src="https://img.dusty.vip/blog/Workflow-09.png" alt="Workflow-09"></p>
 <h3 id="2-9-第九关-代理"><a href="#2-9-第九关-代理" class="headerlink" title="2.9 第九关 - 代理"></a>2.9 第九关 - 代理</h3><blockquote>
 <p>比如有件事让你审批，但是你拿不准，那就转给拿得准的人审批。</p>
 </blockquote>
@@ -354,13 +354,13 @@
 <li>代理操作的本质是，新建一个并行节点作为本节点的父节点，再新建一个兄弟节点放代理人，这样自己和代理人都能审批通过。</li>
 <li>代理操作可以无限嵌套，即代理人也可以找人代理。</li>
 </ul>
-<p><img src="../img/Workflow-10.png" alt="Workflow-10"></p>
+<p><img src="https://img.dusty.vip/blog/Workflow-10.png" alt="Workflow-10"></p>
 <h4 id="2-10-第十关-取消代理"><a href="#2-10-第十关-取消代理" class="headerlink" title="2.10 第十关 - 取消代理"></a>2.10 第十关 - 取消代理</h4><ul>
 <li>取消代理是代理的逆操作。</li>
 <li>如果代理人审批过了那就不能取消代理。</li>
 </ul>
-<p><img src="../img/Workflow-11.png" alt="Workflow-11"></p>
-<p>参考文章【<a href="../img/Workflow-02.pngttps://www.cnblogs.com/duck-and-duck/p/14436373.../img/Workflow-02.pngtml">老板要我开发一个简单的工作流引擎</a>】</p>
+<p><img src="https://img.dusty.vip/blog/Workflow-11.png" alt="Workflow-11"></p>
+<p>参考文章【<a href="https://img.dusty.vip/blog/Workflow-02.pngttps://www.cnblogs.com/duck-and-duck/p/14436373.https://img.dusty.vip/blog/Workflow-02.pngtml" target="_blank" rel="noopener">老板要我开发一个简单的工作流引擎</a>】</p>
 
     </div>
 
