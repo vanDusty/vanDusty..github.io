@@ -1,6 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>【工作流】如何设计一个简单的工作流引擎</title>
+    <url>/2021/03/09/62a5513b.html</url>
+    <content><![CDATA[<p>工作流（Workflow），指<strong>业务过程的部分或整体在计算机应用环境下的自动化</strong>，是对工作流程及其各操作步骤之间业务规则的抽象、概括描述。</p>
+<a id="more"></a>
+
+<h3 id="一、工作流简介"><a href="#一、工作流简介" class="headerlink" title="一、工作流简介"></a>一、工作流简介</h3><h4 id="1-1-什么是工作流？"><a href="#1-1-什么是工作流？" class="headerlink" title="1.1 什么是工作流？"></a>1.1 什么是工作流？</h4><p>工作流（Workflow），指<strong>业务过程的部分或整体在计算机应用环境下的自动化</strong>，是对工作流程及其各操作步骤之间业务规则的抽象、概括描述。在计算机中，工作流属于计算机支持的协同工作（CSCW）的一部分。后者是普遍地研究一个群体如何在计算机的帮助下实现协同工作的。</p>
+<blockquote>
+<p>比如说，我们在公司请假，可能要走审批的流程，从你自己到 Leader,然后从 Leader 到部门经理，然后部门经理再到人事部门，这一系列的流程实际上就相当于是一个工作流程，而这个就是一个工作流的最容易理解的模型。</p>
+</blockquote>
+<h4 id="1-2-工作流有什么用？"><a href="#1-2-工作流有什么用？" class="headerlink" title="1.2 工作流有什么用？"></a>1.2 工作流有什么用？</h4><p>工作流主要解决的主要问题是：为了实现某个业务目标，利用计算机在多个参与者之间按某种预定规则自动传递文档、信息或者任务。</p>
+<h3 id="二、打怪升级史"><a href="#二、打怪升级史" class="headerlink" title="二、打怪升级史"></a>二、打怪升级史</h3><h4 id="2-1-第一关"><a href="#2-1-第一关" class="headerlink" title="2.1 第一关"></a>2.1 第一关</h4><p>第一版，从<code>0</code>到<code>1</code>就可以了，先做个简单的工作流引擎。</p>
+<p><img src="../img/Workflow-01.png" alt="Workflow-01"></p>
+<ul>
+<li>按顺序添加任意个审批人组成一个链表，最后加一个结束节点；</li>
+<li>记录当前审批人，当审批完后，审批人向后移动一位；</li>
+<li>当审批人对应结束节点时，流程结束。</li>
+</ul>
+<h4 id="2-2-第二关-支持会签节点"><a href="#2-2-第二关-支持会签节点" class="headerlink" title="2.2 第二关 - 支持会签节点"></a>2.2 第二关 - 支持会签节点</h4><blockquote>
+<p>会签节点就是一个大节点，里面有很多审批人，当这个大节点里的所有人都审批通过后，才能进入下一个节点。</p>
+</blockquote>
+<p><img src="../img/Workflow-02.png" alt="Workflow-02"></p>
+<ul>
+<li>结构上做出如下调整:</li>
+</ul>
+<ol>
+<li>把节点分为两大类：简单节点(上图中长方形)和复杂节点(上图中圆形)。</li>
+<li>用一棵树表示整个流程，其中叶子节点都是简单节点，简单节点都是叶子节点。</li>
+<li>每个简单节点里都有且仅有有一个审批人。</li>
+<li>复杂节点包含若干个子节点。</li>
+<li>加入会签节点: 会签节点激活后，所有的子节点都可以审批，当所有的子节点全部审批完毕后，会签节点完成。</li>
+<li>加入串行节点：子节点只能从左到右依次进行审批，当最后一个子节点审批完成后，串行节点完成。</li>
+<li>所有的工作流最外层都是一个串行节点，该节点完成后代表整个工作流完成。</li>
+</ol>
+<ul>
+<li>为了控制审批流程，设计了一些节点状态:</li>
+</ul>
+<ol>
+<li><code>Ready</code>: 可以进行审批操作的简单节点是<code>Ready</code>状态。</li>
+<li><code>Complete</code>: 已经审批完成的节点状态。</li>
+<li><code>Future</code>: 现在还没有走到的节点状态。</li>
+<li><code>Waiting</code>: 只有复杂节点有该状态，表示在等待子节点审批。</li>
+</ol>
+<p>借助上述状态，如下是带会签节点的工作流审批过程：</p>
+<p><img src="../img/Workflow-03.png" alt="Workflow-03"></p>
+<h4 id="2-3-第三关-支持并行节点"><a href="#2-3-第三关-支持并行节点" class="headerlink" title="2.3 第三关 - 支持并行节点"></a>2.3 第三关 - 支持并行节点</h4><p>并行节点是一个包含很多审批人的大节点，这个大节点里任何一个人审批通过，则该节点就完成。</p>
+<blockquote>
+<p>并行节点是一个复杂节点，该节点激活时，任何一个子节点都可以进行审批，且任何一个子节点是完成状态时，该节点完成。所以又加了一个状态。</p>
+</blockquote>
+<p><code>Skip</code>:当一个并行节点的子节点状态为非(<code>Ready</code>, <code>Waiting</code>)时，其它兄弟节点及其子节点的状态被置为<code>Skip</code>。</p>
+<p><img src="../img/Workflow-04.png" alt="Workflow-04"></p>
+<blockquote>
+<p>举个栗子：A、B、C 三人都可以审批一个流程，该节点只要三人中的任何一个审批都算完成。现在A审批了，A的状态就是已完成审批（<code>Complete</code>），B和C就无需审批了，B和C就是<code>Skip</code>状态。</p>
+</blockquote>
+<h4 id="2-4-第四关-节点支持嵌套"><a href="#2-4-第四关-节点支持嵌套" class="headerlink" title="2.4 第四关 - 节点支持嵌套"></a>2.4 第四关 - 节点支持嵌套</h4><blockquote>
+<p>比如会签节点里有个并行节点，并行节点里又有个复杂节点，要可以嵌套任意层。</p>
+</blockquote>
+<p><img src="../img/Workflow-05.png" alt="Workflow-05"></p>
+<ul>
+<li>已经支持，能无限扩展的树形结构可以支持任意复杂流程。</li>
+</ul>
+<h4 id="2-5-第五关-支持条件节点"><a href="#2-5-第五关-支持条件节点" class="headerlink" title="2.5 第五关 - 支持条件节点"></a>2.5 第五关 - 支持条件节点</h4><p>工作流附带一个表单，要根据表单的内容确定下一步进入哪个分支。</p>
+<p><img src="../img/Workflow-06.png" alt="Workflow-06"></p>
+<blockquote>
+<p>条件节点类似并行节点，只不过只有满足条件的子节点才能进入接下来的审批。</p>
+</blockquote>
+<h4 id="2-6-第六关-增加审批人类型"><a href="#2-6-第六关-增加审批人类型" class="headerlink" title="2.6 第六关 - 增加审批人类型"></a>2.6 第六关 - 增加审批人类型</h4><p>把简单节点分成了3类：</p>
+<ol>
+<li>第一种：审批人是写死的；</li>
+<li>第二种：审批人从表单中读取；</li>
+<li>第三种：根据发起人和一个映射函数，算出审批人。比如 get_主管(“钱某”) 得到钱某的主管 李某。</li>
+</ol>
+<p><img src="../img/Workflow-07.png" alt="Workflow-07"></p>
+<h4 id="2-7-第七关-驳回"><a href="#2-7-第七关-驳回" class="headerlink" title="2.7 第七关 - 驳回"></a>2.7 第七关 - 驳回</h4><p>要实现驳回到发起人的功能，相当于一切从头开始。</p>
+<blockquote>
+<p>只有<code>Ready</code>状态的节点有权利驳回。（就像只有<code>Ready</code>状态的节点有权利审批一样）。</p>
+</blockquote>
+<p><img src="../img/Workflow-08.png" alt="Workflow-08"></p>
+<h3 id="2-8-第八关-时间限制"><a href="#2-8-第八关-时间限制" class="headerlink" title="2.8 第八关 - 时间限制"></a>2.8 第八关 - 时间限制</h3><p>在普通节点加一个时间限制，要是在规定时间内没完成就显示已超时。</p>
+<p><img src="../img/Workflow-09.png" alt="Workflow-09"></p>
+<h3 id="2-9-第九关-代理"><a href="#2-9-第九关-代理" class="headerlink" title="2.9 第九关 - 代理"></a>2.9 第九关 - 代理</h3><blockquote>
+<p>比如有件事让你审批，但是你拿不准，那就转给拿得准的人审批。</p>
+</blockquote>
+<ul>
+<li>代理操作的本质是，新建一个并行节点作为本节点的父节点，再新建一个兄弟节点放代理人，这样自己和代理人都能审批通过。</li>
+<li>代理操作可以无限嵌套，即代理人也可以找人代理。</li>
+</ul>
+<p><img src="../img/Workflow-10.png" alt="Workflow-10"></p>
+<h4 id="2-10-第十关-取消代理"><a href="#2-10-第十关-取消代理" class="headerlink" title="2.10 第十关 - 取消代理"></a>2.10 第十关 - 取消代理</h4><ul>
+<li>取消代理是代理的逆操作。</li>
+<li>如果代理人审批过了那就不能取消代理。</li>
+</ul>
+<p><img src="../img/Workflow-11.png" alt="Workflow-11"></p>
+<p>参考文章【<a href="../img/Workflow-02.pngttps://www.cnblogs.com/duck-and-duck/p/14436373.../img/Workflow-02.pngtml">老板要我开发一个简单的工作流引擎</a>】</p>
+]]></content>
+      <categories>
+        <category>工作流</category>
+      </categories>
+      <tags>
+        <tag>工作流</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>【并发编程】浅谈线程安全</title>
     <url>/2020/09/08/113e477d.html</url>
     <content><![CDATA[<p><strong>线程安全不是指线程的安全，而是指内存的安全。</strong></p>
@@ -1981,8 +2083,8 @@
       </categories>
       <tags>
         <tag>if else</tag>
-        <tag>工厂模式</tag>
         <tag>策略模式</tag>
+        <tag>工厂模式</tag>
       </tags>
   </entry>
   <entry>
