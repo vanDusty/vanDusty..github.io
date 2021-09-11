@@ -294,6 +294,74 @@
       </tags>
   </entry>
   <entry>
+    <title>【代码优化】基础优化</title>
+    <url>/2021/03/21/4360d2ec.html</url>
+    <content><![CDATA[<p><strong>代码优化</strong>是一个很重要的课题。可能有些人觉得没用，一些细小的地方有什么好修改的，改与不改对于代码的运行效率有什么影响呢？</p>
+<a id="more"></a>
+<h3 id="为什么要优化代码"><a href="#为什么要优化代码" class="headerlink" title="为什么要优化代码"></a>为什么要优化代码</h3><blockquote>
+<p>就像大海里面的鲸鱼一样，它吃一条小虾米有用吗？没用，但是，吃的小虾米一多之后，鲸鱼就被喂饱了。</p>
+</blockquote>
+<p>代码优化也是一样，如果项目着眼于尽快无<code>BUG</code>上线，那么此时可以抓大放小，代码的细节可以不精打细磨；但是如果有足够的时间开发、维护代码，这时候就必须考虑每个可以优化的细节了，一个一个细小的优化点累积起来，对于代码的运行效率绝对是有提升的。</p>
+<ul>
+<li>代码优化的目标是：<ol>
+<li>减小代码的体积；</li>
+<li>提高代码运行的效率；</li>
+<li>代码优化细节。</li>
+</ol>
+</li>
+</ul>
+<h3 id="Map-获取-key-和-value"><a href="#Map-获取-key-和-value" class="headerlink" title="Map 获取 key 和 value"></a><code>Map</code> 获取 <code>key</code> 和 <code>value</code></h3><p>当循环中只需要获取 <code>Map</code> 的主键 <code>key</code> 时，迭代 <code>keySet()</code> 是正确的；但是，当需要主键 <code>key</code> 和取值 <code>value</code> 时，迭代 <code>entrySet()</code> 才是更高效的做法，其比先迭代 <code>keySet()</code> 后再去通过 <code>get</code> 取值性能更佳。</p>
+<ul>
+<li>获取 <code>key</code> &amp; <code>value</code> 反例：</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">HashMap&lt;String, String&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line"><span class="keyword">for</span> (String key : map.keySet())&#123;</span><br><span class="line">    String value = map.get(key);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>获取 <code>key</code> &amp; <code>value</code> 正例：</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> HashMap&lt;String, String&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line"> <span class="keyword">for</span> (Map.Entry&lt;String,String&gt; entry : map.entrySet())&#123;</span><br><span class="line">    String key = entry.getKey();</span><br><span class="line">    String value = entry.getValue();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="使用-Collection-isEmpty-检测空"><a href="#使用-Collection-isEmpty-检测空" class="headerlink" title="使用 Collection.isEmpty() 检测空"></a>使用 <code>Collection.isEmpty()</code> 检测空</h3><ol>
+<li>使用 <code>Collection.size()</code> 来检测是否为空在逻辑上没有问题，但是使用 <code>Collection.isEmpty()</code>使得代码更易读，并且可以获得更好的性能；</li>
+<li>除此之外，任何 <code>Collection.isEmpty()</code>实现的时间复杂度都是 <code>O(1)</code>，不需要多次循环遍历；但是某些通过 <code>Collection.size()</code> 方法实现的时间复杂度可能是 <code>O(n)</code>。(参见：【<a href="https://www.cnblogs.com/taojietaoge/p/10947214.html" target="_blank" rel="noopener">O(1) 纬度减少循环次数</a>】）</li>
+</ol>
+<h3 id="返回空数组和集合而非-null"><a href="#返回空数组和集合而非-null" class="headerlink" title="返回空数组和集合而非 null"></a>返回空数组和集合而非 <code>null</code></h3><p>若程序运行返回 <code>null</code>，需要调用方强制检测 <code>null</code>，否则就会抛出空指针异常；返回空数组或空集合，<strong>有效地避免了调用方因为未检测 <code>null</code> 而抛出空指针异常的情况，还可以删除调用方检测 <code>null</code> 的语句使代码更简洁。</strong></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> List&lt;Result&gt; <span class="title">getResultList</span><span class="params">()</span> </span>&#123;</span><br><span class="line">     <span class="keyword">return</span> Collections.emptyList();</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Map&lt;String, Result&gt; <span class="title">getResultMap</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> Collections.emptyMap();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="尽量减少对变量的重复计算"><a href="#尽量减少对变量的重复计算" class="headerlink" title="尽量减少对变量的重复计算"></a>尽量减少对变量的重复计算</h3><p>对方法的调用，即使方法中只有一句语句，也是有消耗的，包括创建栈帧、调用方法时保护现场、调用方法完毕时恢复现场等。所以例如下面的操作：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;list.size(); i++)&#123;</span><br><span class="line">    <span class="comment">// xxx</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>建议替换为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>,length = list.size(); i&lt;length; i++)&#123;</span><br><span class="line">    <span class="comment">// xxx</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样，避免每次都计算<code>list.size()</code>，就减少了很多的消耗。</p>
+<h3 id="尽量采用懒加载的策略，即在需要的时候才创建"><a href="#尽量采用懒加载的策略，即在需要的时候才创建" class="headerlink" title="尽量采用懒加载的策略，即在需要的时候才创建"></a>尽量采用懒加载的策略，即在需要的时候才创建</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">String str = <span class="string">"abc"</span>;</span><br><span class="line"><span class="keyword">if</span> (a &gt; b) &#123;</span><br><span class="line">    list.add(str);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>替换为</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (a &gt; b) &#123;</span><br><span class="line">    String str = <span class="string">"abc"</span>;</span><br><span class="line">    list.add(str);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="循环内不要不断创建对象引用"><a href="#循环内不要不断创建对象引用" class="headerlink" title="循环内不要不断创建对象引用"></a>循环内不要不断创建对象引用</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">    Object obj = <span class="keyword">new</span> Object();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种做法会导致内存中有<code>count</code>份<code>Object</code>对象引用存在，<code>count</code>很大时，就耗费内存了，建议为改为</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Object obj = <span class="keyword">null</span>;</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">    obj = <span class="keyword">new</span> Object();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样的话，内存中只有一份<code>Object</code>对象引用，每次<code>new Object</code>的时候，<code>Object</code>对象引用指向不同的<code>Object</code>罢了，但是内存中只有一份，这样就大大节省了内存空间了。</p>
+<h3 id="将常量声明为-static-final，并以大写命名"><a href="#将常量声明为-static-final，并以大写命名" class="headerlink" title="将常量声明为 static final，并以大写命名"></a>将常量声明为 <code>static final</code>，并以大写命名</h3><p>这样在编译期间就可以把这些内容放入常量池中，避免运行期间计算生成常量的值。另外，将常量的名字以大写命名也可以方便区分出常量与变量。</p>
+<h3 id="使用静态代码块实现赋值静态成员变量"><a href="#使用静态代码块实现赋值静态成员变量" class="headerlink" title="使用静态代码块实现赋值静态成员变量"></a>使用静态代码块实现赋值静态成员变量</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> Map&lt;String, Integer&gt; map = <span class="keyword">new</span> HashMap&lt;String, Integer&gt;()&#123;</span><br><span class="line">      map.put(<span class="string">"Leo"</span>,<span class="number">1</span>);</span><br><span class="line">      map.put(<span class="string">"Family-loving"</span>,<span class="number">2</span>);</span><br><span class="line">      map.put(<span class="string">"Cold on the out side passionate on the inside"</span>,<span class="number">3</span>);</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> List&lt;String&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;()&#123;</span><br><span class="line">     list.add(<span class="string">"Sagittarius"</span>);</span><br><span class="line">     list.add(<span class="string">"Charming"</span>);</span><br><span class="line">     list.add(<span class="string">"Perfectionist"</span>);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>对于集合类型的静态成员变量，应该使用静态代码块赋值，而不是使用集合实现来赋值。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> Map&lt;String, Integer&gt; map = <span class="keyword">new</span> HashMap&lt;String, Integer&gt;();</span><br><span class="line">  <span class="keyword">static</span> &#123;</span><br><span class="line">      map.put(<span class="string">"Leo"</span>,<span class="number">1</span>);</span><br><span class="line">      map.put(<span class="string">"Family-loving"</span>,<span class="number">2</span>);</span><br><span class="line">      map.put(<span class="string">"Cold on the out side passionate on the inside"</span>,<span class="number">3</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> List&lt;String&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line"> <span class="keyword">static</span> &#123;</span><br><span class="line">     list.add(<span class="string">"Sagittarius"</span>);</span><br><span class="line">     list.add(<span class="string">"Charming"</span>);</span><br><span class="line">     list.add(<span class="string">"Perfectionist"</span>);</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="若需频繁调用-Collection-contains-方法则使用-Set"><a href="#若需频繁调用-Collection-contains-方法则使用-Set" class="headerlink" title="若需频繁调用 Collection.contains 方法则使用 Set"></a>若需频繁调用 <code>Collection.contains</code> 方法则使用 <code>Set</code></h3><p>在 <code>Java</code> 集合类库中，<code>List</code> 的 <code>contains</code> 方法普遍时间复杂度为 <code>O(n)</code>，若代码中需要频繁调用 <code>contains</code>方法查找数据则先将集合 <code>List</code>  转换成 <code>HashSet</code> 实现，将 <code>O(n)</code> 的时间复杂度将为 <code>O(1)</code>。</p>
+<div style="text-align: center;font-weight:bold;">...................持续更新...................</div>]]></content>
+      <categories>
+        <category>代码优化</category>
+      </categories>
+      <tags>
+        <tag>代码优化</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>【SQL 优化】判断结果是否&quot;存在&quot;</title>
     <url>/2021/02/09/39707b73.html</url>
     <content><![CDATA[<blockquote>
