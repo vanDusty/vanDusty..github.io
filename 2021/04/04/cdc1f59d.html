@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.dusty.vip","root":"/","scheme":"Pisces","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="批处理数据主要有三种方式：  反复执行单条插入语句 foreach 拼接 sql 批处理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【MyBatis优化】几种批量插入效率的比较">
+<meta property="og:url" content="https://www.dusty.vip/2021/04/04/cdc1f59d.html">
+<meta property="og:site_name" content="风尘博客">
+<meta property="og:description" content="批处理数据主要有三种方式：  反复执行单条插入语句 foreach 拼接 sql 批处理">
+<meta property="article:published_time" content="2021-04-04T04:01:08.000Z">
+<meta property="article:modified_time" content="2021-09-11T04:26:26.534Z">
+<meta property="article:author" content="Van">
+<meta property="article:tag" content="MyBatis">
+<meta property="article:tag" content="MyBatis优化">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://www.dusty.vip/2021/04/04/cdc1f59d.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>【MyBatis优化】几种批量插入效率的比较 | 风尘博客</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?ddcd15db9f34dd2fff4f8efe4962cd1c";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">风尘博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">风尘博客</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/vanDusty" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://www.dusty.vip/2021/04/04/cdc1f59d.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/advator.jpg">
+      <meta itemprop="name" content="Van">
+      <meta itemprop="description" content="我有一杯酒，可以慰风尘">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="风尘博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【MyBatis优化】几种批量插入效率的比较
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-04-04 12:01:08" itemprop="dateCreated datePublished" datetime="2021-04-04T12:01:08+08:00">2021-04-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MyBatis%E4%BC%98%E5%8C%96/" itemprop="url" rel="index"><span itemprop="name">MyBatis优化</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>8.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>15 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>批处理数据主要有三种方式：</p>
+<ol>
+<li>反复执行单条插入语句</li>
+<li><code>foreach</code> 拼接 <code>sql</code></li>
+<li>批处理</li>
+</ol>
+<a id="more"></a>
+
+<h3 id="一、前期准备"><a href="#一、前期准备" class="headerlink" title="一、前期准备"></a>一、前期准备</h3><p>基于<code>Spring Boot</code> + <code>Mysql</code>，同时为了省略<code>get</code>/<code>set</code>，使用了<code>lombok</code>，详见<code>pom.xml</code>。</p>
+<h4 id="1-1-表结构"><a href="#1-1-表结构" class="headerlink" title="1.1 表结构"></a>1.1 表结构</h4><blockquote>
+<p><code>id</code> 使用数据库自增。</p>
+</blockquote>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DROP</span> <span class="keyword">TABLE</span> <span class="keyword">IF</span> <span class="keyword">EXISTS</span> <span class="string">`user_info_batch`</span>;</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`user_info_batch`</span> (</span><br><span class="line">                           <span class="string">`id`</span> <span class="built_in">bigint</span>(<span class="number">11</span>) <span class="keyword">unsigned</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT <span class="keyword">COMMENT</span> <span class="string">'主键id'</span>,</span><br><span class="line">                           <span class="string">`user_name`</span> <span class="built_in">varchar</span>(<span class="number">100</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'账户名称'</span>,</span><br><span class="line">                           <span class="string">`pass_word`</span> <span class="built_in">varchar</span>(<span class="number">100</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'登录密码'</span>,</span><br><span class="line">                           <span class="string">`nick_name`</span> <span class="built_in">varchar</span>(<span class="number">30</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'昵称'</span>,</span><br><span class="line">                           <span class="string">`mobile`</span> <span class="built_in">varchar</span>(<span class="number">30</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'手机号'</span>,</span><br><span class="line">                           <span class="string">`email`</span> <span class="built_in">varchar</span>(<span class="number">100</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'邮箱地址'</span>,</span><br><span class="line">                           <span class="string">`gmt_create`</span> <span class="built_in">timestamp</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span> <span class="keyword">COMMENT</span> <span class="string">'创建时间'</span>,</span><br><span class="line">                           <span class="string">`gmt_update`</span> <span class="built_in">timestamp</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'更新时间'</span>,</span><br><span class="line">                           PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>) <span class="keyword">USING</span> BTREE</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> AUTO_INCREMENT=<span class="number">1</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8 ROW_FORMAT=DYNAMIC <span class="keyword">COMMENT</span> <span class="string">'Mybatis Batch'</span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-2-项目配置文件"><a href="#1-2-项目配置文件" class="headerlink" title="1.2 项目配置文件"></a>1.2 项目配置文件</h4><p>细心的你可能已经发现，数据库<code>url</code> 后面跟了一段 <code>rewriteBatchedStatements=true</code>，有什么用呢？先不急，后面会介绍。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"># 数据库配置</span><br><span class="line">spring:</span><br><span class="line">  datasource:</span><br><span class="line">    url: jdbc:mysql://47.111.118.152:3306/mybatis?rewriteBatchedStatements=true</span><br><span class="line">    username: mybatis</span><br><span class="line">    password: ZcB3L2HEmxTAKr2m</span><br><span class="line">    driver-class-name: com.mysql.cj.jdbc.Driver</span><br><span class="line"># mybatis</span><br><span class="line">mybatis:</span><br><span class="line">  mapper-locations: classpath:mapper/*.xml</span><br><span class="line">  type-aliases-package: cn.van.mybatis.batch.entity</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-3-实体类"><a href="#1-3-实体类" class="headerlink" title="1.3 实体类"></a>1.3 实体类</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">@Data</span><br><span class="line">@Accessors(chain &#x3D; true)</span><br><span class="line">public class UserInfoBatchDO implements Serializable &#123;</span><br><span class="line">    private Long id;</span><br><span class="line"></span><br><span class="line">    private String userName;</span><br><span class="line"></span><br><span class="line">    private String passWord;</span><br><span class="line"></span><br><span class="line">    private String nickName;</span><br><span class="line"></span><br><span class="line">    private String mobile;</span><br><span class="line"></span><br><span class="line">    private String email;</span><br><span class="line"></span><br><span class="line">    private LocalDateTime gmtCreate;</span><br><span class="line"></span><br><span class="line">    private LocalDateTime gmtUpdate;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="1-4-UserInfoBatchMapper"><a href="#1-4-UserInfoBatchMapper" class="headerlink" title="1.4 UserInfoBatchMapper"></a>1.4 <code>UserInfoBatchMapper</code></h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">UserInfoBatchMapper</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** 单条插入</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> info</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">insert</span><span class="params">(UserInfoBatchDO info)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * foreach 插入</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> list</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">batchInsert</span><span class="params">(List&lt;UserInfoBatchDO&gt; list)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-5-UserInfoBatchMapper-xml"><a href="#1-5-UserInfoBatchMapper-xml" class="headerlink" title="1.5 UserInfoBatchMapper.xml"></a>1.5 <code>UserInfoBatchMapper.xml</code></h4><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">mapper</span> <span class="meta-keyword">PUBLIC</span> <span class="meta-string">"-//mybatis.org//DTD Mapper 3.0//EN"</span> <span class="meta-string">"http://mybatis.org/dtd/mybatis-3-mapper.dtd"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">mapper</span> <span class="attr">namespace</span>=<span class="string">"cn.van.mybatis.batch.mapper.UserInfoBatchMapper"</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">insert</span> <span class="attr">id</span>=<span class="string">"insert"</span> <span class="attr">parameterType</span>=<span class="string">"cn.van.mybatis.batch.entity.UserInfoBatchDO"</span>&gt;</span></span><br><span class="line">    insert into user_info_batch (user_name, pass_word, nick_name, mobile, email, gmt_create, gmt_update)</span><br><span class="line">    values (#&#123;userName,jdbcType=VARCHAR&#125;, #&#123;passWord,jdbcType=VARCHAR&#125;,#&#123;nickName,jdbcType=VARCHAR&#125;, #&#123;mobile,jdbcType=VARCHAR&#125;, #&#123;email,jdbcType=VARCHAR&#125;, #&#123;gmtCreate,jdbcType=TIMESTAMP&#125;, #&#123;gmtUpdate,jdbcType=TIMESTAMP&#125;)</span><br><span class="line">  <span class="tag">&lt;/<span class="name">insert</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">insert</span> <span class="attr">id</span>=<span class="string">"batchInsert"</span>&gt;</span></span><br><span class="line">    insert into user_info_batch (user_name, pass_word, nick_name, mobile, email, gmt_create, gmt_update)</span><br><span class="line">    values</span><br><span class="line">    <span class="tag">&lt;<span class="name">foreach</span> <span class="attr">collection</span>=<span class="string">"list"</span> <span class="attr">item</span>=<span class="string">"item"</span> <span class="attr">separator</span>=<span class="string">","</span>&gt;</span></span><br><span class="line">      (#&#123;item.userName,jdbcType=VARCHAR&#125;, #&#123;item.passWord,jdbcType=VARCHAR&#125;, #&#123;item.nickName,jdbcType=VARCHAR&#125;, #&#123;item.mobile,jdbcType=VARCHAR&#125;, #&#123;item.email,jdbcType=VARCHAR&#125;, #&#123;item.gmtCreate,jdbcType=TIMESTAMP&#125;, #&#123;item.gmtUpdate,jdbcType=TIMESTAMP&#125;)</span><br><span class="line">    <span class="tag">&lt;/<span class="name">foreach</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">insert</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">mapper</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="1-6-预备数据"><a href="#1-6-预备数据" class="headerlink" title="1.6 预备数据"></a>1.6 预备数据</h4><blockquote>
+<p>为了方便测试，抽离了几个变量，并进行提前加载。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">private List&lt;UserInfoBatchDO&gt; list &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">private List&lt;UserInfoBatchDO&gt; lessList &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">private List&lt;UserInfoBatchDO&gt; lageList &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">private List&lt;UserInfoBatchDO&gt; warmList &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">&#x2F;&#x2F; 计数工具</span><br><span class="line">private StopWatch sw &#x3D; new StopWatch();</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>为了方便组装数据，抽出了一个公共方法。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">private List&lt;UserInfoBatchDO&gt; assemblyData(int count)&#123;</span><br><span class="line">    List&lt;UserInfoBatchDO&gt; list &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">    UserInfoBatchDO userInfoDO;</span><br><span class="line">    for (int i &#x3D; 0;i &lt; count;i++)&#123;</span><br><span class="line">        userInfoDO &#x3D; new UserInfoBatchDO()</span><br><span class="line">                .setUserName(&quot;Van&quot;)</span><br><span class="line">                .setNickName(&quot;123456&quot;)</span><br><span class="line">                .setNickName(&quot;风尘博客&quot;)</span><br><span class="line">                .setMobile(&quot;17098705205&quot;)</span><br><span class="line">                .setPassWord(&quot;password&quot;)</span><br><span class="line">                .setGmtUpdate(LocalDateTime.now());</span><br><span class="line">        list.add(userInfoDO);</span><br><span class="line">    &#125;</span><br><span class="line">    return list;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>预热数据</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">@Before</span><br><span class="line">public void assemblyData() &#123;</span><br><span class="line">    list &#x3D; assemblyData(200000);</span><br><span class="line">    lessList &#x3D; assemblyData(2000);</span><br><span class="line">    lageList &#x3D; assemblyData(2000);</span><br><span class="line">    warmList &#x3D; assemblyData(5);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="二、反复执行单条插入语句"><a href="#二、反复执行单条插入语句" class="headerlink" title="二、反复执行单条插入语句"></a>二、反复执行单条插入语句</h3><blockquote>
+<p>可能‘懒’的程序员会这么做，很简单，直接在原先单条<code>insert</code>语句上嵌套一个<code>for</code>循环。</p>
+</blockquote>
+<h4 id="2-1-对应-mapper-接口"><a href="#2-1-对应-mapper-接口" class="headerlink" title="2.1 对应 mapper 接口"></a>2.1 对应 mapper 接口</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">int insert(UserInfoBatchDO info);</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-测试方法"><a href="#2-2-测试方法" class="headerlink" title="2.2 测试方法"></a>2.2 测试方法</h4><blockquote>
+<p>因为这种方法太慢，所以数据降低到 <code>2000</code> 条</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">@Test</span><br><span class="line">public void insert() &#123;</span><br><span class="line">    log.info(&quot;【程序热身】&quot;);</span><br><span class="line">    for (UserInfoBatchDO userInfoBatchDO : warmList) &#123;</span><br><span class="line">        userInfoBatchMapper.insert(userInfoBatchDO);</span><br><span class="line">    &#125;</span><br><span class="line">    log.info(&quot;【热身结束】&quot;);</span><br><span class="line">    sw.start(&quot;反复执行单条插入语句&quot;);</span><br><span class="line">    &#x2F;&#x2F; 这里插入 20w 条太慢了，所以我只插入了 2000 条</span><br><span class="line">    for (UserInfoBatchDO userInfoBatchDO : lessList) &#123;</span><br><span class="line">        userInfoBatchMapper.insert(userInfoBatchDO);</span><br><span class="line">    &#125;</span><br><span class="line">    sw.stop();</span><br><span class="line">    log.info(&quot;all cost info:&#123;&#125;&quot;,sw.prettyPrint());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3-执行时间"><a href="#2-3-执行时间" class="headerlink" title="2.3 执行时间"></a>2.3 执行时间</h4><ul>
+<li>第一次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">59887  100%  反复执行单条插入语句</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第二次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">64853  100%  反复执行单条插入语句</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第三次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">58235  100%  反复执行单条插入语句</span><br></pre></td></tr></table></figure>
+
+<p>该方式插入<code>2000</code> 条数据，执行三次的平均时间：<code>60991 ms</code>。</p>
+<h3 id="三、foreach-拼接SQL"><a href="#三、foreach-拼接SQL" class="headerlink" title="三、foreach 拼接SQL"></a>三、<code>foreach</code> 拼接<code>SQL</code></h3><h4 id="3-1-对应mapper-接口"><a href="#3-1-对应mapper-接口" class="headerlink" title="3.1 对应mapper 接口"></a>3.1 对应mapper 接口</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">batchInsert</span><span class="params">(List&lt;UserInfoBatchDO&gt; list)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-测试方法"><a href="#3-2-测试方法" class="headerlink" title="3.2 测试方法"></a>3.2 测试方法</h4><blockquote>
+<p>该方式和下一种方式都采用<code>20w</code>条数据测试。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">@Test</span><br><span class="line">public void batchInsert() &#123;</span><br><span class="line">    log.info(&quot;【程序热身】&quot;);</span><br><span class="line">    for (UserInfoBatchDO userInfoBatchDO : warmList) &#123;</span><br><span class="line">        userInfoBatchMapper.insert(userInfoBatchDO);</span><br><span class="line">    &#125;</span><br><span class="line">    log.info(&quot;【热身结束】&quot;);</span><br><span class="line">    sw.start(&quot;foreach 拼接 sql&quot;);</span><br><span class="line">    userInfoBatchMapper.batchInsert(list);</span><br><span class="line">    sw.stop();</span><br><span class="line">    log.info(&quot;all cost info:&#123;&#125;&quot;,sw.prettyPrint());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="3-3-执行时间"><a href="#3-3-执行时间" class="headerlink" title="3.3 执行时间"></a>3.3 执行时间</h4><ul>
+<li>第一次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">18835  100%  foreach 拼接 sql</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第二次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">17895  100%  foreach 拼接 sql</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第三次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">19827  100%  foreach 拼接 sql</span><br></pre></td></tr></table></figure>
+
+<p>该方式插入<code>20w</code> 条数据，执行三次的平均时间：<code>18852 ms</code>。</p>
+<h3 id="四、批处理"><a href="#四、批处理" class="headerlink" title="四、批处理"></a>四、批处理</h3><blockquote>
+<p>该方式 <code>mapper</code> 和<code>xml</code> 复用了 <code>2.1</code>。</p>
+</blockquote>
+<h4 id="4-1-rewriteBatchedStatements-参数"><a href="#4-1-rewriteBatchedStatements-参数" class="headerlink" title="4.1 rewriteBatchedStatements 参数"></a>4.1 <code>rewriteBatchedStatements</code> 参数</h4><blockquote>
+<p>我在测试一开始，发现改成 <code>Mybatis Batch</code>提交的方法都不起作用，实际上在插入的时候仍然是一条条记录的插，而且速度远不如原来 <code>foreach</code> 拼接<code>SQL</code>的方法，这是非常不科学的。</p>
+</blockquote>
+<p><strong>后来才发现要批量执行的话，连接<code>URL</code>字符串中需要新增一个参数：<code>rewriteBatchedStatements=true</code></strong></p>
+<ul>
+<li><code>rewriteBatchedStatements</code>参数介绍</li>
+</ul>
+<p><code>MySql</code>的<code>JDBC</code>连接的<code>url</code>中要加<code>rewriteBatchedStatements</code>参数，并保证<code>5.1.13</code>以上版本的驱动，才能实现高性能的批量插入。<code>MySql JDBC</code>驱动在默认情况下会无视<code>executeBatch()</code>语句，把我们期望批量执行的一组<code>sql</code>语句拆散，一条一条地发给<code>MySql</code>数据库，批量插入实际上是单条插入，直接造成较低的性能。只有把<code>rewriteBatchedStatements</code>参数置为<code>true</code>, 驱动才会帮你批量执行<code>SQL</code>。这个选项对<code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code>都有效。</p>
+<h4 id="4-2-批处理准备"><a href="#4-2-批处理准备" class="headerlink" title="4.2 批处理准备"></a>4.2 批处理准备</h4><ul>
+<li>手动注入 <code>SqlSessionFactory</code></li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@Resource</span><br><span class="line">private SqlSessionFactory sqlSessionFactory;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>测试代码</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">@Test</span><br><span class="line">public void processInsert() &#123;</span><br><span class="line">    log.info(&quot;【程序热身】&quot;);</span><br><span class="line">    for (UserInfoBatchDO userInfoBatchDO : warmList) &#123;</span><br><span class="line">        userInfoBatchMapper.insert(userInfoBatchDO);</span><br><span class="line">    &#125;</span><br><span class="line">    log.info(&quot;【热身结束】&quot;);</span><br><span class="line">    sw.start(&quot;批处理执行 插入&quot;);</span><br><span class="line">    &#x2F;&#x2F; 打开批处理</span><br><span class="line">    SqlSession session &#x3D; sqlSessionFactory.openSession(ExecutorType.BATCH);</span><br><span class="line">    UserInfoBatchMapper mapper &#x3D; session.getMapper(UserInfoBatchMapper.class);</span><br><span class="line">    for (int i &#x3D; 0,length &#x3D; list.size(); i &lt; length; i++) &#123;</span><br><span class="line">        mapper.insert(list.get(i));</span><br><span class="line">        &#x2F;&#x2F;每20000条提交一次防止内存溢出</span><br><span class="line">        if(i%20000&#x3D;&#x3D;19999)&#123;</span><br><span class="line">            session.commit();</span><br><span class="line">            session.clearCache();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    session.commit();</span><br><span class="line">    session.clearCache();</span><br><span class="line">    sw.stop();</span><br><span class="line">    log.info(&quot;all cost info:&#123;&#125;&quot;,sw.prettyPrint());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-3-执行时间"><a href="#4-3-执行时间" class="headerlink" title="4.3 执行时间"></a>4.3 执行时间</h4><ul>
+<li>第一次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">09346  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第二次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">08890  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第三次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">09042  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<p>该方式插入<code>20w</code> 条数据，执行三次的平均时间：<code>9092 ms</code>。</p>
+<h4 id="4-4-如果数据更大"><a href="#4-4-如果数据更大" class="headerlink" title="4.4 如果数据更大"></a>4.4 如果数据更大</h4><p>当我把数据扩大到 <code>100w</code> 时，<code>foreach</code> 拼接 <code>sql</code> 的方式已经无法完成插入了，所以我只能测试批处理的插入时间。</p>
+<ul>
+<li>第一次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">32419  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第二次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">31935  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第三次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">33048  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<p>该方式插入<code>100w</code> 条数据，执行三次的平均时间：<code>32467 ms</code>。</p>
+<h3 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h3><table>
+<thead>
+<tr>
+<th>批量插入方式</th>
+<th>数据量</th>
+<th>执行三次的平均时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>循环插入单条数据</td>
+<td>2000</td>
+<td>60991 ms</td>
+</tr>
+<tr>
+<td><code>foreach</code> 拼接<code>sql</code></td>
+<td>20w</td>
+<td>18852 ms</td>
+</tr>
+<tr>
+<td>批处理</td>
+<td>20w</td>
+<td>9092 ms</td>
+</tr>
+<tr>
+<td>批处理</td>
+<td>100w</td>
+<td>32467 ms</td>
+</tr>
+</tbody></table>
+<ol>
+<li>循环插入单条数据虽然效率极低，但是代码量极少，数据量较小时可以使用，但是数据量较大禁止使用，效率太低了；</li>
+<li><code>foreach</code> 拼接<code>sql</code>的方式，使用时有大段的xml和sql语句要写，很容易出错，虽然效率尚可，但是真正应对大量数据的时候，依旧无法使用，所以不推荐使用；</li>
+<li>批处理执行是有大数据量插入时推荐的做法，使用起来也比较方便。</li>
+</ol>
+<p>【<a href="https://github.com/vanDusty/Frame-Home/tree/master/mybatis-case/mybatis-batch" target="_blank" rel="noopener">本文示例代码</a>】</p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/images/dusty_blog.png" alt="Van wechat" style="width: 200px; max-width: 100%;"/>
+    <div>最新文章，欢迎您扫一扫上面的微信公众号！</div>
+</div>
+
+      </div>
+    
+
+     <div>
+        
+          <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------　　　　本文结束　<i class="fa fa-heart"></i>　感谢您的阅读　　　　-------------</div>
+    
+</div>
+
+        
+      </div>
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/MyBatis/" rel="tag"><i class="fa fa-tag"></i> MyBatis</a>
+              <a href="/tags/MyBatis%E4%BC%98%E5%8C%96/" rel="tag"><i class="fa fa-tag"></i> MyBatis优化</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/02/09/39707b73.html" rel="prev" title="【SQL 优化】判断结果是否"存在"">
+      <i class="fa fa-chevron-left"></i> 【SQL 优化】判断结果是否"存在"
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/05/02/62a5513b.html" rel="next" title="【工作流】如何设计一个简单的工作流引擎">
+      【工作流】如何设计一个简单的工作流引擎 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#一、前期准备"><span class="nav-number">1.</span> <span class="nav-text">一、前期准备</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-表结构"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 表结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-项目配置文件"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 项目配置文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-实体类"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 实体类</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-UserInfoBatchMapper"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 UserInfoBatchMapper</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-5-UserInfoBatchMapper-xml"><span class="nav-number">1.5.</span> <span class="nav-text">1.5 UserInfoBatchMapper.xml</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-6-预备数据"><span class="nav-number">1.6.</span> <span class="nav-text">1.6 预备数据</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#二、反复执行单条插入语句"><span class="nav-number">2.</span> <span class="nav-text">二、反复执行单条插入语句</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-对应-mapper-接口"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 对应 mapper 接口</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-测试方法"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 测试方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-执行时间"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 执行时间</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#三、foreach-拼接SQL"><span class="nav-number">3.</span> <span class="nav-text">三、foreach 拼接SQL</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-对应mapper-接口"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 对应mapper 接口</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-测试方法"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 测试方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-执行时间"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 执行时间</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#四、批处理"><span class="nav-number">4.</span> <span class="nav-text">四、批处理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-rewriteBatchedStatements-参数"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 rewriteBatchedStatements 参数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-批处理准备"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 批处理准备</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-3-执行时间"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 执行时间</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-4-如果数据更大"><span class="nav-number">4.4.</span> <span class="nav-text">4.4 如果数据更大</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#五、总结"><span class="nav-number">5.</span> <span class="nav-text">五、总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <a href="/">
+      <img class="site-author-image" itemprop="image" alt="Van"
+        src="/images/advator.jpg">
+    </a>
+  <p class="site-author-name" itemprop="name">Van</p>
+  <div class="site-description" itemprop="description">我有一杯酒，可以慰风尘</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">56</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">17</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">55</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/vanDusty" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;vanDusty" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:vanzhangf@gmail.com" title="E-Mail → mailto:vanzhangf@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.cnblogs.com/vandusty" title="博客园 → https:&#x2F;&#x2F;www.cnblogs.com&#x2F;vandusty" rel="noopener" target="_blank"><i class="fa fa-fw fa-send-o"></i>博客园</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://juejin.im/user/5d5ea68e6fb9a06afa328f56/posts" title="掘金 → https:&#x2F;&#x2F;juejin.im&#x2F;user&#x2F;5d5ea68e6fb9a06afa328f56&#x2F;posts" rel="noopener" target="_blank"><i class="fa fa-fw fa-heartbeat"></i>掘金</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">浙ICP备18016950号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2016 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heartbeat"></i>
+  </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">376k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">11:24</span>
+</div><style>
+    .custom-sidebar {
+        margin-top: 20px;
+    }
+    .custom-sidebar-title {
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+        border-top: 1px dotted #ccc;
+    }
+</style>
+<div class="custom-sidebar">
+    <div class="custom-sidebar-title">
+        <a href="https://www.upyun.com/?utm_source=lianmeng&utm_medium=referral" target="_blank">
+            <img src="/images/youpai.png" alt="又拍云联盟" width="30"/>
+        </a>
+    </div>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var bp = document.createElement('script');
+      var curProtocol = window.location.protocol.split(':')[0];
+      bp.src = (curProtocol === 'https') ? 'https://zz.bdstatic.com/linksubmit/push.js' : 'http://push.zhanzhang.baidu.com/push.js';
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(bp, s);
+    })();
+  </script>
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body>
+</html>

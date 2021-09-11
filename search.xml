@@ -103,6 +103,194 @@
       </tags>
   </entry>
   <entry>
+    <title>【MyBatis优化】几种批量插入效率的比较</title>
+    <url>/2021/04/04/cdc1f59d.html</url>
+    <content><![CDATA[<p>批处理数据主要有三种方式：</p>
+<ol>
+<li>反复执行单条插入语句</li>
+<li><code>foreach</code> 拼接 <code>sql</code></li>
+<li>批处理</li>
+</ol>
+<a id="more"></a>
+
+<h3 id="一、前期准备"><a href="#一、前期准备" class="headerlink" title="一、前期准备"></a>一、前期准备</h3><p>基于<code>Spring Boot</code> + <code>Mysql</code>，同时为了省略<code>get</code>/<code>set</code>，使用了<code>lombok</code>，详见<code>pom.xml</code>。</p>
+<h4 id="1-1-表结构"><a href="#1-1-表结构" class="headerlink" title="1.1 表结构"></a>1.1 表结构</h4><blockquote>
+<p><code>id</code> 使用数据库自增。</p>
+</blockquote>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">DROP</span> <span class="keyword">TABLE</span> <span class="keyword">IF</span> <span class="keyword">EXISTS</span> <span class="string">`user_info_batch`</span>;</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`user_info_batch`</span> (</span><br><span class="line">                           <span class="string">`id`</span> <span class="built_in">bigint</span>(<span class="number">11</span>) <span class="keyword">unsigned</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT <span class="keyword">COMMENT</span> <span class="string">'主键id'</span>,</span><br><span class="line">                           <span class="string">`user_name`</span> <span class="built_in">varchar</span>(<span class="number">100</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'账户名称'</span>,</span><br><span class="line">                           <span class="string">`pass_word`</span> <span class="built_in">varchar</span>(<span class="number">100</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'登录密码'</span>,</span><br><span class="line">                           <span class="string">`nick_name`</span> <span class="built_in">varchar</span>(<span class="number">30</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'昵称'</span>,</span><br><span class="line">                           <span class="string">`mobile`</span> <span class="built_in">varchar</span>(<span class="number">30</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'手机号'</span>,</span><br><span class="line">                           <span class="string">`email`</span> <span class="built_in">varchar</span>(<span class="number">100</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'邮箱地址'</span>,</span><br><span class="line">                           <span class="string">`gmt_create`</span> <span class="built_in">timestamp</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span> <span class="keyword">COMMENT</span> <span class="string">'创建时间'</span>,</span><br><span class="line">                           <span class="string">`gmt_update`</span> <span class="built_in">timestamp</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'更新时间'</span>,</span><br><span class="line">                           PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>) <span class="keyword">USING</span> BTREE</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> AUTO_INCREMENT=<span class="number">1</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8 ROW_FORMAT=DYNAMIC <span class="keyword">COMMENT</span> <span class="string">'Mybatis Batch'</span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-2-项目配置文件"><a href="#1-2-项目配置文件" class="headerlink" title="1.2 项目配置文件"></a>1.2 项目配置文件</h4><p>细心的你可能已经发现，数据库<code>url</code> 后面跟了一段 <code>rewriteBatchedStatements=true</code>，有什么用呢？先不急，后面会介绍。</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"># 数据库配置</span><br><span class="line">spring:</span><br><span class="line">  datasource:</span><br><span class="line">    url: jdbc:mysql://47.111.118.152:3306/mybatis?rewriteBatchedStatements=true</span><br><span class="line">    username: mybatis</span><br><span class="line">    password: ZcB3L2HEmxTAKr2m</span><br><span class="line">    driver-class-name: com.mysql.cj.jdbc.Driver</span><br><span class="line"># mybatis</span><br><span class="line">mybatis:</span><br><span class="line">  mapper-locations: classpath:mapper/*.xml</span><br><span class="line">  type-aliases-package: cn.van.mybatis.batch.entity</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-3-实体类"><a href="#1-3-实体类" class="headerlink" title="1.3 实体类"></a>1.3 实体类</h4><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Data</span><br><span class="line">@Accessors(chain &#x3D; true)</span><br><span class="line">public class UserInfoBatchDO implements Serializable &#123;</span><br><span class="line">    private Long id;</span><br><span class="line"></span><br><span class="line">    private String userName;</span><br><span class="line"></span><br><span class="line">    private String passWord;</span><br><span class="line"></span><br><span class="line">    private String nickName;</span><br><span class="line"></span><br><span class="line">    private String mobile;</span><br><span class="line"></span><br><span class="line">    private String email;</span><br><span class="line"></span><br><span class="line">    private LocalDateTime gmtCreate;</span><br><span class="line"></span><br><span class="line">    private LocalDateTime gmtUpdate;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="1-4-UserInfoBatchMapper"><a href="#1-4-UserInfoBatchMapper" class="headerlink" title="1.4 UserInfoBatchMapper"></a>1.4 <code>UserInfoBatchMapper</code></h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">UserInfoBatchMapper</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** 单条插入</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> info</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">insert</span><span class="params">(UserInfoBatchDO info)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * foreach 插入</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> list</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">batchInsert</span><span class="params">(List&lt;UserInfoBatchDO&gt; list)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-5-UserInfoBatchMapper-xml"><a href="#1-5-UserInfoBatchMapper-xml" class="headerlink" title="1.5 UserInfoBatchMapper.xml"></a>1.5 <code>UserInfoBatchMapper.xml</code></h4><figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">mapper</span> <span class="meta-keyword">PUBLIC</span> <span class="meta-string">"-//mybatis.org//DTD Mapper 3.0//EN"</span> <span class="meta-string">"http://mybatis.org/dtd/mybatis-3-mapper.dtd"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">mapper</span> <span class="attr">namespace</span>=<span class="string">"cn.van.mybatis.batch.mapper.UserInfoBatchMapper"</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">insert</span> <span class="attr">id</span>=<span class="string">"insert"</span> <span class="attr">parameterType</span>=<span class="string">"cn.van.mybatis.batch.entity.UserInfoBatchDO"</span>&gt;</span></span><br><span class="line">    insert into user_info_batch (user_name, pass_word, nick_name, mobile, email, gmt_create, gmt_update)</span><br><span class="line">    values (#&#123;userName,jdbcType=VARCHAR&#125;, #&#123;passWord,jdbcType=VARCHAR&#125;,#&#123;nickName,jdbcType=VARCHAR&#125;, #&#123;mobile,jdbcType=VARCHAR&#125;, #&#123;email,jdbcType=VARCHAR&#125;, #&#123;gmtCreate,jdbcType=TIMESTAMP&#125;, #&#123;gmtUpdate,jdbcType=TIMESTAMP&#125;)</span><br><span class="line">  <span class="tag">&lt;/<span class="name">insert</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">insert</span> <span class="attr">id</span>=<span class="string">"batchInsert"</span>&gt;</span></span><br><span class="line">    insert into user_info_batch (user_name, pass_word, nick_name, mobile, email, gmt_create, gmt_update)</span><br><span class="line">    values</span><br><span class="line">    <span class="tag">&lt;<span class="name">foreach</span> <span class="attr">collection</span>=<span class="string">"list"</span> <span class="attr">item</span>=<span class="string">"item"</span> <span class="attr">separator</span>=<span class="string">","</span>&gt;</span></span><br><span class="line">      (#&#123;item.userName,jdbcType=VARCHAR&#125;, #&#123;item.passWord,jdbcType=VARCHAR&#125;, #&#123;item.nickName,jdbcType=VARCHAR&#125;, #&#123;item.mobile,jdbcType=VARCHAR&#125;, #&#123;item.email,jdbcType=VARCHAR&#125;, #&#123;item.gmtCreate,jdbcType=TIMESTAMP&#125;, #&#123;item.gmtUpdate,jdbcType=TIMESTAMP&#125;)</span><br><span class="line">    <span class="tag">&lt;/<span class="name">foreach</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">insert</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">mapper</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="1-6-预备数据"><a href="#1-6-预备数据" class="headerlink" title="1.6 预备数据"></a>1.6 预备数据</h4><blockquote>
+<p>为了方便测试，抽离了几个变量，并进行提前加载。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">private List&lt;UserInfoBatchDO&gt; list &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">private List&lt;UserInfoBatchDO&gt; lessList &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">private List&lt;UserInfoBatchDO&gt; lageList &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">private List&lt;UserInfoBatchDO&gt; warmList &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">&#x2F;&#x2F; 计数工具</span><br><span class="line">private StopWatch sw &#x3D; new StopWatch();</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>为了方便组装数据，抽出了一个公共方法。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">private List&lt;UserInfoBatchDO&gt; assemblyData(int count)&#123;</span><br><span class="line">    List&lt;UserInfoBatchDO&gt; list &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">    UserInfoBatchDO userInfoDO;</span><br><span class="line">    for (int i &#x3D; 0;i &lt; count;i++)&#123;</span><br><span class="line">        userInfoDO &#x3D; new UserInfoBatchDO()</span><br><span class="line">                .setUserName(&quot;Van&quot;)</span><br><span class="line">                .setNickName(&quot;123456&quot;)</span><br><span class="line">                .setNickName(&quot;风尘博客&quot;)</span><br><span class="line">                .setMobile(&quot;17098705205&quot;)</span><br><span class="line">                .setPassWord(&quot;password&quot;)</span><br><span class="line">                .setGmtUpdate(LocalDateTime.now());</span><br><span class="line">        list.add(userInfoDO);</span><br><span class="line">    &#125;</span><br><span class="line">    return list;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>预热数据</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Before</span><br><span class="line">public void assemblyData() &#123;</span><br><span class="line">    list &#x3D; assemblyData(200000);</span><br><span class="line">    lessList &#x3D; assemblyData(2000);</span><br><span class="line">    lageList &#x3D; assemblyData(2000);</span><br><span class="line">    warmList &#x3D; assemblyData(5);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="二、反复执行单条插入语句"><a href="#二、反复执行单条插入语句" class="headerlink" title="二、反复执行单条插入语句"></a>二、反复执行单条插入语句</h3><blockquote>
+<p>可能‘懒’的程序员会这么做，很简单，直接在原先单条<code>insert</code>语句上嵌套一个<code>for</code>循环。</p>
+</blockquote>
+<h4 id="2-1-对应-mapper-接口"><a href="#2-1-对应-mapper-接口" class="headerlink" title="2.1 对应 mapper 接口"></a>2.1 对应 mapper 接口</h4><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">int insert(UserInfoBatchDO info);</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-测试方法"><a href="#2-2-测试方法" class="headerlink" title="2.2 测试方法"></a>2.2 测试方法</h4><blockquote>
+<p>因为这种方法太慢，所以数据降低到 <code>2000</code> 条</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Test</span><br><span class="line">public void insert() &#123;</span><br><span class="line">    log.info(&quot;【程序热身】&quot;);</span><br><span class="line">    for (UserInfoBatchDO userInfoBatchDO : warmList) &#123;</span><br><span class="line">        userInfoBatchMapper.insert(userInfoBatchDO);</span><br><span class="line">    &#125;</span><br><span class="line">    log.info(&quot;【热身结束】&quot;);</span><br><span class="line">    sw.start(&quot;反复执行单条插入语句&quot;);</span><br><span class="line">    &#x2F;&#x2F; 这里插入 20w 条太慢了，所以我只插入了 2000 条</span><br><span class="line">    for (UserInfoBatchDO userInfoBatchDO : lessList) &#123;</span><br><span class="line">        userInfoBatchMapper.insert(userInfoBatchDO);</span><br><span class="line">    &#125;</span><br><span class="line">    sw.stop();</span><br><span class="line">    log.info(&quot;all cost info:&#123;&#125;&quot;,sw.prettyPrint());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3-执行时间"><a href="#2-3-执行时间" class="headerlink" title="2.3 执行时间"></a>2.3 执行时间</h4><ul>
+<li>第一次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">59887  100%  反复执行单条插入语句</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第二次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">64853  100%  反复执行单条插入语句</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第三次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">58235  100%  反复执行单条插入语句</span><br></pre></td></tr></table></figure>
+
+<p>该方式插入<code>2000</code> 条数据，执行三次的平均时间：<code>60991 ms</code>。</p>
+<h3 id="三、foreach-拼接SQL"><a href="#三、foreach-拼接SQL" class="headerlink" title="三、foreach 拼接SQL"></a>三、<code>foreach</code> 拼接<code>SQL</code></h3><h4 id="3-1-对应mapper-接口"><a href="#3-1-对应mapper-接口" class="headerlink" title="3.1 对应mapper 接口"></a>3.1 对应mapper 接口</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">batchInsert</span><span class="params">(List&lt;UserInfoBatchDO&gt; list)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-测试方法"><a href="#3-2-测试方法" class="headerlink" title="3.2 测试方法"></a>3.2 测试方法</h4><blockquote>
+<p>该方式和下一种方式都采用<code>20w</code>条数据测试。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Test</span><br><span class="line">public void batchInsert() &#123;</span><br><span class="line">    log.info(&quot;【程序热身】&quot;);</span><br><span class="line">    for (UserInfoBatchDO userInfoBatchDO : warmList) &#123;</span><br><span class="line">        userInfoBatchMapper.insert(userInfoBatchDO);</span><br><span class="line">    &#125;</span><br><span class="line">    log.info(&quot;【热身结束】&quot;);</span><br><span class="line">    sw.start(&quot;foreach 拼接 sql&quot;);</span><br><span class="line">    userInfoBatchMapper.batchInsert(list);</span><br><span class="line">    sw.stop();</span><br><span class="line">    log.info(&quot;all cost info:&#123;&#125;&quot;,sw.prettyPrint());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="3-3-执行时间"><a href="#3-3-执行时间" class="headerlink" title="3.3 执行时间"></a>3.3 执行时间</h4><ul>
+<li>第一次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">18835  100%  foreach 拼接 sql</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第二次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">17895  100%  foreach 拼接 sql</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第三次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">19827  100%  foreach 拼接 sql</span><br></pre></td></tr></table></figure>
+
+<p>该方式插入<code>20w</code> 条数据，执行三次的平均时间：<code>18852 ms</code>。</p>
+<h3 id="四、批处理"><a href="#四、批处理" class="headerlink" title="四、批处理"></a>四、批处理</h3><blockquote>
+<p>该方式 <code>mapper</code> 和<code>xml</code> 复用了 <code>2.1</code>。</p>
+</blockquote>
+<h4 id="4-1-rewriteBatchedStatements-参数"><a href="#4-1-rewriteBatchedStatements-参数" class="headerlink" title="4.1 rewriteBatchedStatements 参数"></a>4.1 <code>rewriteBatchedStatements</code> 参数</h4><blockquote>
+<p>我在测试一开始，发现改成 <code>Mybatis Batch</code>提交的方法都不起作用，实际上在插入的时候仍然是一条条记录的插，而且速度远不如原来 <code>foreach</code> 拼接<code>SQL</code>的方法，这是非常不科学的。</p>
+</blockquote>
+<p><strong>后来才发现要批量执行的话，连接<code>URL</code>字符串中需要新增一个参数：<code>rewriteBatchedStatements=true</code></strong></p>
+<ul>
+<li><code>rewriteBatchedStatements</code>参数介绍</li>
+</ul>
+<p><code>MySql</code>的<code>JDBC</code>连接的<code>url</code>中要加<code>rewriteBatchedStatements</code>参数，并保证<code>5.1.13</code>以上版本的驱动，才能实现高性能的批量插入。<code>MySql JDBC</code>驱动在默认情况下会无视<code>executeBatch()</code>语句，把我们期望批量执行的一组<code>sql</code>语句拆散，一条一条地发给<code>MySql</code>数据库，批量插入实际上是单条插入，直接造成较低的性能。只有把<code>rewriteBatchedStatements</code>参数置为<code>true</code>, 驱动才会帮你批量执行<code>SQL</code>。这个选项对<code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code>都有效。</p>
+<h4 id="4-2-批处理准备"><a href="#4-2-批处理准备" class="headerlink" title="4.2 批处理准备"></a>4.2 批处理准备</h4><ul>
+<li>手动注入 <code>SqlSessionFactory</code></li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Resource</span><br><span class="line">private SqlSessionFactory sqlSessionFactory;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>测试代码</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Test</span><br><span class="line">public void processInsert() &#123;</span><br><span class="line">    log.info(&quot;【程序热身】&quot;);</span><br><span class="line">    for (UserInfoBatchDO userInfoBatchDO : warmList) &#123;</span><br><span class="line">        userInfoBatchMapper.insert(userInfoBatchDO);</span><br><span class="line">    &#125;</span><br><span class="line">    log.info(&quot;【热身结束】&quot;);</span><br><span class="line">    sw.start(&quot;批处理执行 插入&quot;);</span><br><span class="line">    &#x2F;&#x2F; 打开批处理</span><br><span class="line">    SqlSession session &#x3D; sqlSessionFactory.openSession(ExecutorType.BATCH);</span><br><span class="line">    UserInfoBatchMapper mapper &#x3D; session.getMapper(UserInfoBatchMapper.class);</span><br><span class="line">    for (int i &#x3D; 0,length &#x3D; list.size(); i &lt; length; i++) &#123;</span><br><span class="line">        mapper.insert(list.get(i));</span><br><span class="line">        &#x2F;&#x2F;每20000条提交一次防止内存溢出</span><br><span class="line">        if(i%20000&#x3D;&#x3D;19999)&#123;</span><br><span class="line">            session.commit();</span><br><span class="line">            session.clearCache();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    session.commit();</span><br><span class="line">    session.clearCache();</span><br><span class="line">    sw.stop();</span><br><span class="line">    log.info(&quot;all cost info:&#123;&#125;&quot;,sw.prettyPrint());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-3-执行时间"><a href="#4-3-执行时间" class="headerlink" title="4.3 执行时间"></a>4.3 执行时间</h4><ul>
+<li>第一次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">09346  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第二次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">08890  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第三次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">09042  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<p>该方式插入<code>20w</code> 条数据，执行三次的平均时间：<code>9092 ms</code>。</p>
+<h4 id="4-4-如果数据更大"><a href="#4-4-如果数据更大" class="headerlink" title="4.4 如果数据更大"></a>4.4 如果数据更大</h4><p>当我把数据扩大到 <code>100w</code> 时，<code>foreach</code> 拼接 <code>sql</code> 的方式已经无法完成插入了，所以我只能测试批处理的插入时间。</p>
+<ul>
+<li>第一次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">32419  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第二次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">31935  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第三次</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">-----------------------------------------</span><br><span class="line">ms     %     Task name</span><br><span class="line">-----------------------------------------</span><br><span class="line">33048  100%  批处理执行 插入</span><br></pre></td></tr></table></figure>
+
+<p>该方式插入<code>100w</code> 条数据，执行三次的平均时间：<code>32467 ms</code>。</p>
+<h3 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h3><table>
+<thead>
+<tr>
+<th>批量插入方式</th>
+<th>数据量</th>
+<th>执行三次的平均时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>循环插入单条数据</td>
+<td>2000</td>
+<td>60991 ms</td>
+</tr>
+<tr>
+<td><code>foreach</code> 拼接<code>sql</code></td>
+<td>20w</td>
+<td>18852 ms</td>
+</tr>
+<tr>
+<td>批处理</td>
+<td>20w</td>
+<td>9092 ms</td>
+</tr>
+<tr>
+<td>批处理</td>
+<td>100w</td>
+<td>32467 ms</td>
+</tr>
+</tbody></table>
+<ol>
+<li>循环插入单条数据虽然效率极低，但是代码量极少，数据量较小时可以使用，但是数据量较大禁止使用，效率太低了；</li>
+<li><code>foreach</code> 拼接<code>sql</code>的方式，使用时有大段的xml和sql语句要写，很容易出错，虽然效率尚可，但是真正应对大量数据的时候，依旧无法使用，所以不推荐使用；</li>
+<li>批处理执行是有大数据量插入时推荐的做法，使用起来也比较方便。</li>
+</ol>
+<p>【<a href="https://github.com/vanDusty/Frame-Home/tree/master/mybatis-case/mybatis-batch" target="_blank" rel="noopener">本文示例代码</a>】</p>
+]]></content>
+      <categories>
+        <category>MyBatis优化</category>
+      </categories>
+      <tags>
+        <tag>MyBatis</tag>
+        <tag>MyBatis优化</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>【SQL 优化】判断结果是否&quot;存在&quot;</title>
     <url>/2021/02/09/39707b73.html</url>
     <content><![CDATA[<blockquote>
