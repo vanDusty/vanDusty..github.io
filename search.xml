@@ -286,7 +286,7 @@
 <p>【<a href="https://github.com/vanDusty/Frame-Home/tree/master/mybatis-case/mybatis-batch" target="_blank" rel="noopener">本文示例代码</a>】</p>
 ]]></content>
       <categories>
-        <category>MyBatis优化</category>
+        <category>MyBatis</category>
       </categories>
       <tags>
         <tag>MyBatis</tag>
@@ -2429,8 +2429,8 @@
         <category>设计模式</category>
       </categories>
       <tags>
-        <tag>工厂模式</tag>
         <tag>if else</tag>
+        <tag>工厂模式</tag>
         <tag>策略模式</tag>
       </tags>
   </entry>
