@@ -103,7 +103,7 @@
       </tags>
   </entry>
   <entry>
-    <title>【MyBatis优化】几种批量插入效率的比较</title>
+    <title>【MyBatis】几种批量插入效率的比较</title>
     <url>/2021/04/04/cdc1f59d.html</url>
     <content><![CDATA[<p>批处理数据主要有三种方式：</p>
 <ol>
@@ -290,7 +290,7 @@
       </categories>
       <tags>
         <tag>MyBatis</tag>
-        <tag>MyBatis优化</tag>
+        <tag>批量</tag>
       </tags>
   </entry>
   <entry>
@@ -2429,9 +2429,9 @@
         <category>设计模式</category>
       </categories>
       <tags>
+        <tag>工厂模式</tag>
         <tag>if else</tag>
         <tag>策略模式</tag>
-        <tag>工厂模式</tag>
       </tags>
   </entry>
   <entry>
