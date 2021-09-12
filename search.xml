@@ -1,6 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>【JDK】分析 String str=&quot;&quot; 与 new String()</title>
+    <url>/2021/06/12/e408f44d.html</url>
+    <content><![CDATA[<p><code>String str=&quot;&quot;</code>与<code>new String()</code> 没区别？看完本文，希望你有所收获。</p>
+<a id="more"></a>
+
+<h3 id="一、基础概念"><a href="#一、基础概念" class="headerlink" title="一、基础概念"></a>一、基础概念</h3><blockquote>
+<p>为了讲清楚他们的差异，这里先介绍几个概念。</p>
+</blockquote>
+<h4 id="1-1-常量池"><a href="#1-1-常量池" class="headerlink" title="1.1 常量池"></a>1.1 常量池</h4><p>所谓常量池：顾名思义就是用来存放一些常量的。该常量是在<strong>编译期被确定</strong>，并被保存在已编译的<code>.class</code>文件中，其中包括了类，方法，接口等包含的数值常量，字符常量和字符常量。</p>
+<h4 id="1-2-字符串常量池"><a href="#1-2-字符串常量池" class="headerlink" title="1.2 字符串常量池"></a>1.2 字符串常量池</h4><p>在常量池中，有个专门用来存储字符串常量的，称之为字符串常量池。</p>
+<p>当我们需要使用字符串时，首先会在该字符串常量中查找是否存在该字符串，若存在则直接进行使用；若不存在，则会新建一个对应的字符串，并保存在该字符串常量池中。</p>
+<h4 id="1-3-在编译期间创建的常量和运行期间创建的常量保存的地址是不一样的"><a href="#1-3-在编译期间创建的常量和运行期间创建的常量保存的地址是不一样的" class="headerlink" title="1.3 在编译期间创建的常量和运行期间创建的常量保存的地址是不一样的"></a>1.3 在编译期间创建的常量和运行期间创建的常量保存的地址是不一样的</h4><blockquote>
+<p>对象的引用都是存放在栈中</p>
+</blockquote>
+<ol>
+<li>编译期间创建的常量保存在常量池中；</li>
+<li>运行期间通过<code>new</code>创建时，会直接创建一个新字符串常量并会存储在堆中。</li>
+</ol>
+<blockquote>
+<p>所以我们可以发现，在堆中，可以有很多重复相同的字符串，而在常量池中，不会出现重复的值。</p>
+</blockquote>
+<h4 id="1-4-equals-与"><a href="#1-4-equals-与" class="headerlink" title="1.4 equals()与=="></a>1.4 <code>equals()</code>与<code>==</code></h4><ul>
+<li><code>==</code></li>
+</ul>
+<ol>
+<li>如果是基本类型，<code>==</code>表示判断它们值是否相等；</li>
+<li>如果是引用对象，<code>==</code>表示判断两个对象指向的内存地址是否相同。</li>
+</ol>
+<ul>
+<li><code>equals()</code></li>
+</ul>
+<ol>
+<li><code>equals()</code>方法未被重写时（<code>Object</code>时),比较的是内存地址；</li>
+<li><code>equals()</code>方法被<code>String</code>、<code>Integer</code>、<code>Date</code>等类重写时，其比较的是两个内容是否相同。</li>
+</ol>
+<h3 id="二、String-str-quot-quot-与new-String-的区别"><a href="#二、String-str-quot-quot-与new-String-的区别" class="headerlink" title="二、String str=&quot;&quot;与new String()的区别"></a>二、<code>String str=&quot;&quot;</code>与<code>new String()</code>的区别</h3><h4 id="2-1-String-str-quot-quot"><a href="#2-1-String-str-quot-quot" class="headerlink" title="2.1 String str=&quot;&quot;"></a>2.1 <code>String str=&quot;&quot;</code></h4><p>例如：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">String str = <span class="string">"风尘博客"</span>;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>先在栈区创建<code>str</code>引用，然后关于创建对象。</li>
+</ul>
+<blockquote>
+<p>这个表达式，可能会创建一个对象，也可能不会创建对象。</p>
+</blockquote>
+<ol>
+<li>如果常量池中没有“风尘博客”这个字符串，就需要创建；</li>
+<li>常量池中存在“风尘博客”这个字符串，就直接拿来用。</li>
+</ol>
+<ul>
+<li>最后<code>str</code>指向常量池中的对象。</li>
+</ul>
+<blockquote>
+<p>注意！这里就是上面说的，从常量池中直接取用，所以，两者引用地址应该也相同，即 <code>==</code> 比较为<code>true</code>。<br><img src="https://img.dusty.vip/blog//JDK-String-compare-01.png" alt="JDK-String-compare-01"></p>
+</blockquote>
+<h4 id="2-2-String-str-new-String"><a href="#2-2-String-str-new-String" class="headerlink" title="2.2 String str=new String()"></a>2.2 <code>String str=new String()</code></h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">String str=<span class="keyword">new</span> String(“风尘博客”)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>同样的，先在栈区创建<code>str</code>引用；</li>
+</ul>
+<blockquote>
+<p>这个表达式，可能会创建一个对象，也可能创建两个对象。</p>
+</blockquote>
+<ol>
+<li>然后会直接创建一个字符串存放在堆中；</li>
+<li>其次，同样的：如果常量池中没有“风尘博客”这个字符串，就需要创建；常量池中存在“风尘博客”这个字符串，就直接拿来用。</li>
+</ol>
+<ul>
+<li>最后<code>str</code>指向常量池中的对象。</li>
+</ul>
+<blockquote>
+<p>注意！这里这里和上面不一样，这里直接在堆里创建对象，每新建一个都会创建一个，所以，两者引用地址肯定不相同，即 <code>==</code> 比较为<code>false</code>。</p>
+</blockquote>
+<p><img src="https://img.dusty.vip/blog//JDK-String-compare-01.png" alt="JDK-String-compare-02"></p>
+]]></content>
+      <categories>
+        <category>JDK</category>
+        <category>String</category>
+      </categories>
+      <tags>
+        <tag>String</tag>
+        <tag>JDK</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>【工作流】如何设计一个简单的工作流引擎</title>
     <url>/2021/05/02/62a5513b.html</url>
     <content><![CDATA[<p>工作流（Workflow），指<strong>业务过程的部分或整体在计算机应用环境下的自动化</strong>，是对工作流程及其各操作步骤之间业务规则的抽象、概括描述。</p>
