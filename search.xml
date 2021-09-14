@@ -364,7 +364,7 @@
 </tbody></table>
 <ol>
 <li>循环插入单条数据虽然效率极低，但是代码量极少，数据量较小时可以使用，但是数据量较大禁止使用，效率太低了；</li>
-<li><code>foreach</code> 拼接<code>sql</code>的方式，使用时有大段的xml和sql语句要写，很容易出错，虽然效率尚可，但是真正应对大量数据的时候，依旧无法使用，所以不推荐使用；</li>
+<li><code>foreach</code> 拼接<code>sql</code>的方式，使用时有大段的<code>xml</code>和<code>sql</code>语句要写，很容易出错，虽然效率尚可，但是真正应对大量数据的时候，依旧无法使用，所以不推荐使用；</li>
 <li>批处理执行是有大数据量插入时推荐的做法，使用起来也比较方便。</li>
 </ol>
 <p>【<a href="https://github.com/vanDusty/Frame-Home/tree/master/mybatis-case/mybatis-batch" target="_blank" rel="noopener">本文示例代码</a>】</p>
@@ -437,6 +437,11 @@
 
 
 <h3 id="若需频繁调用-Collection-contains-方法则使用-Set"><a href="#若需频繁调用-Collection-contains-方法则使用-Set" class="headerlink" title="若需频繁调用 Collection.contains 方法则使用 Set"></a>若需频繁调用 <code>Collection.contains</code> 方法则使用 <code>Set</code></h3><p>在 <code>Java</code> 集合类库中，<code>List</code> 的 <code>contains</code> 方法普遍时间复杂度为 <code>O(n)</code>，若代码中需要频繁调用 <code>contains</code>方法查找数据则先将集合 <code>List</code>  转换成 <code>HashSet</code> 实现，将 <code>O(n)</code> 的时间复杂度将为 <code>O(1)</code>。</p>
+<h3 id="采用Lambda表达式替换内部匿名类，使代码更优雅"><a href="#采用Lambda表达式替换内部匿名类，使代码更优雅" class="headerlink" title="采用Lambda表达式替换内部匿名类，使代码更优雅"></a>采用<code>Lambda</code>表达式替换内部匿名类，使代码更优雅</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sortUserInfoList</span><span class="params">(List&lt;UserInfo&gt; userInfoList)</span></span>&#123;</span><br><span class="line">    userInfoList.sort(<span class="keyword">new</span> Comparator&lt;UserInfo&gt;() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">compare</span><span class="params">(UserInfo user1, UserInfo user2)</span> </span>&#123;</span><br><span class="line">            Long userId1 = user1.getUserId();</span><br><span class="line">            Long userId2 = user2.getUserId();</span><br><span class="line">            <span class="keyword">return</span> userId1.compareTo(userId2);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>JDK8</code>的新特性-<code>Lambda</code>表达式：不仅比匿名内部类更加优雅，并且在大多数虚拟机中，都是采用<code>invokeDynamic</code>指令实现，相对于匿名内部类，效率也更高。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sortUserInfoList</span><span class="params">(List&lt;UserInfo&gt; userInfoList)</span></span>&#123;</span><br><span class="line">    userInfoList.sort((user1, user2) -&gt; &#123;</span><br><span class="line">        Long userId1 = user1.getUserId();</span><br><span class="line">        Long userId2 = user2.getUserId();</span><br><span class="line">        <span class="keyword">return</span> userId1.compareTo(userId2);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <div style="text-align: center;font-weight:bold;">...................持续更新...................</div>]]></content>
       <categories>
         <category>代码优化</category>
@@ -3104,8 +3109,8 @@
         <category>分布式</category>
       </categories>
       <tags>
-        <tag>并发</tag>
         <tag>ID</tag>
+        <tag>并发</tag>
       </tags>
   </entry>
   <entry>
