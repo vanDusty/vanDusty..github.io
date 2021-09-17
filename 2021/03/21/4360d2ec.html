@@ -27,7 +27,7 @@
 <meta property="og:site_name" content="风尘博客">
 <meta property="og:description" content="代码优化是一个很重要的课题。可能有些人觉得没用，一些细小的地方有什么好修改的，改与不改对于代码的运行效率有什么影响呢？">
 <meta property="article:published_time" content="2021-03-21T08:39:49.000Z">
-<meta property="article:modified_time" content="2021-09-14T06:44:37.395Z">
+<meta property="article:modified_time" content="2021-09-14T06:46:40.600Z">
 <meta property="article:author" content="Van">
 <meta property="article:tag" content="代码优化">
 <meta name="twitter:card" content="summary">
@@ -86,7 +86,12 @@
 </noscript>
 
 </head>
-
+<script>
+(function(){
+var src = "https://s.ssl.qhres2.com/ssl/ab77b6ea7f3fbf79.js";
+document.write('<script src="' + src + '" id="sozz"><\/script>');
+})();
+</script>
 <body itemscope itemtype="http://schema.org/WebPage">
   <div class="container use-motion">
     <div class="headband"></div>
@@ -239,7 +244,7 @@
                 <i class="fa fa-file-word-o"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>3.5k</span>
+              <span>3.6k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
@@ -320,7 +325,7 @@
 <p><code>JDK8</code>的新特性-<code>Lambda</code>表达式：不仅比匿名内部类更加优雅，并且在大多数虚拟机中，都是采用<code>invokeDynamic</code>指令实现，相对于匿名内部类，效率也更高。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sortUserInfoList</span><span class="params">(List&lt;UserInfo&gt; userInfoList)</span></span>&#123;</span><br><span class="line">    userInfoList.sort((user1, user2) -&gt; &#123;</span><br><span class="line">        Long userId1 = user1.getUserId();</span><br><span class="line">        Long userId2 = user2.getUserId();</span><br><span class="line">        <span class="keyword">return</span> userId1.compareTo(userId2);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<div style="text-align: center;font-weight:bold;">...................持续更新...................</div>
+<h3 id="处理Java日期时，当心YYYY格式设置的问题。"><a href="#处理Java日期时，当心YYYY格式设置的问题。" class="headerlink" title="处理Java日期时，当心YYYY格式设置的问题。"></a>处理Java日期时，当心YYYY格式设置的问题。</h3><div style="text-align: center;font-weight:bold;">...................持续更新...................</div>
     </div>
 
     
@@ -418,7 +423,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#为什么要优化代码"><span class="nav-number">1.</span> <span class="nav-text">为什么要优化代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Map-获取-key-和-value"><span class="nav-number">2.</span> <span class="nav-text">Map 获取 key 和 value</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用-Collection-isEmpty-检测空"><span class="nav-number">3.</span> <span class="nav-text">使用 Collection.isEmpty() 检测空</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#返回空数组和集合而非-null"><span class="nav-number">4.</span> <span class="nav-text">返回空数组和集合而非 null</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#尽量减少对变量的重复计算"><span class="nav-number">5.</span> <span class="nav-text">尽量减少对变量的重复计算</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#尽量采用懒加载的策略，即在需要的时候才创建"><span class="nav-number">6.</span> <span class="nav-text">尽量采用懒加载的策略，即在需要的时候才创建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#循环内不要不断创建对象引用"><span class="nav-number">7.</span> <span class="nav-text">循环内不要不断创建对象引用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#将常量声明为-static-final，并以大写命名"><span class="nav-number">8.</span> <span class="nav-text">将常量声明为 static final，并以大写命名</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用静态代码块实现赋值静态成员变量"><span class="nav-number">9.</span> <span class="nav-text">使用静态代码块实现赋值静态成员变量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#若需频繁调用-Collection-contains-方法则使用-Set"><span class="nav-number">10.</span> <span class="nav-text">若需频繁调用 Collection.contains 方法则使用 Set</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#采用Lambda表达式替换内部匿名类，使代码更优雅"><span class="nav-number">11.</span> <span class="nav-text">采用Lambda表达式替换内部匿名类，使代码更优雅</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#为什么要优化代码"><span class="nav-number">1.</span> <span class="nav-text">为什么要优化代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Map-获取-key-和-value"><span class="nav-number">2.</span> <span class="nav-text">Map 获取 key 和 value</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用-Collection-isEmpty-检测空"><span class="nav-number">3.</span> <span class="nav-text">使用 Collection.isEmpty() 检测空</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#返回空数组和集合而非-null"><span class="nav-number">4.</span> <span class="nav-text">返回空数组和集合而非 null</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#尽量减少对变量的重复计算"><span class="nav-number">5.</span> <span class="nav-text">尽量减少对变量的重复计算</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#尽量采用懒加载的策略，即在需要的时候才创建"><span class="nav-number">6.</span> <span class="nav-text">尽量采用懒加载的策略，即在需要的时候才创建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#循环内不要不断创建对象引用"><span class="nav-number">7.</span> <span class="nav-text">循环内不要不断创建对象引用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#将常量声明为-static-final，并以大写命名"><span class="nav-number">8.</span> <span class="nav-text">将常量声明为 static final，并以大写命名</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用静态代码块实现赋值静态成员变量"><span class="nav-number">9.</span> <span class="nav-text">使用静态代码块实现赋值静态成员变量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#若需频繁调用-Collection-contains-方法则使用-Set"><span class="nav-number">10.</span> <span class="nav-text">若需频繁调用 Collection.contains 方法则使用 Set</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#采用Lambda表达式替换内部匿名类，使代码更优雅"><span class="nav-number">11.</span> <span class="nav-text">采用Lambda表达式替换内部匿名类，使代码更优雅</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#处理Java日期时，当心YYYY格式设置的问题。"><span class="nav-number">12.</span> <span class="nav-text">处理Java日期时，当心YYYY格式设置的问题。</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
