@@ -442,7 +442,14 @@
 <p><code>JDK8</code>的新特性-<code>Lambda</code>表达式：不仅比匿名内部类更加优雅，并且在大多数虚拟机中，都是采用<code>invokeDynamic</code>指令实现，相对于匿名内部类，效率也更高。</p>
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sortUserInfoList</span><span class="params">(List&lt;UserInfo&gt; userInfoList)</span></span>&#123;</span><br><span class="line">    userInfoList.sort((user1, user2) -&gt; &#123;</span><br><span class="line">        Long userId1 = user1.getUserId();</span><br><span class="line">        Long userId2 = user2.getUserId();</span><br><span class="line">        <span class="keyword">return</span> userId1.compareTo(userId2);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h3 id="处理Java日期时，当心YYYY格式设置的问题。"><a href="#处理Java日期时，当心YYYY格式设置的问题。" class="headerlink" title="处理Java日期时，当心YYYY格式设置的问题。"></a>处理Java日期时，当心YYYY格式设置的问题。</h3><div style="text-align: center;font-weight:bold;">...................持续更新...................</div>]]></content>
+<h3 id="处理Java日期时，当心YYYY格式设置的问题。"><a href="#处理Java日期时，当心YYYY格式设置的问题。" class="headerlink" title="处理Java日期时，当心YYYY格式设置的问题。"></a>处理Java日期时，当心YYYY格式设置的问题。</h3><blockquote>
+<p>2020年底发生一件很诡异的事情：明明是2020年12月27日，当天确显示2021年12月27日。</p>
+</blockquote>
+<p>其实，这就是 <code>YYYY-MM-dd</code> 给你送的新年彩蛋!</p>
+<p>只要去查下 【<a href="https://docs.oracle.com/javase/8/docs/api/index.html" target="_blank" rel="noopener">jdk 8 的 api</a>】不难发现，</p>
+<p><code>y</code> 对应 <code>year</code>：就是年的意思<br><code>Y</code> 对应 <code>Week year</code>：代表的是本周所在年份，而只要本周跨年，那么本周都是算到下一年的，所以就出现了上面的彩蛋。</p>
+<p>在项目中，应该尽量避免每次转换日期都手动进行编写格式的操作，这边总会不可避免的产生这样的问题，统一定义一个DateConstant类，里面提供各种转换格式的方法以及所以常用的到的格式的常量定义，这样跨年的彩蛋就不会找上你了。</p>
+<div style="text-align: center;font-weight:bold;">...................持续更新...................</div>]]></content>
       <categories>
         <category>代码优化</category>
       </categories>
@@ -2587,8 +2594,8 @@
       </categories>
       <tags>
         <tag>if else</tag>
-        <tag>工厂模式</tag>
         <tag>策略模式</tag>
+        <tag>工厂模式</tag>
       </tags>
   </entry>
   <entry>
