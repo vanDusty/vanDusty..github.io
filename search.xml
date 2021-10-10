@@ -626,8 +626,7 @@
     <content><![CDATA[<p>从<strong>宏观上来分类</strong>，锁可以分为乐观锁与悲观锁。注意，这里说的的锁可以是数据库中的锁，也可以是 <code>Java</code>、<code>Python</code> 等开发语言中的锁技术。</p>
 <a id="more"></a>
 
-<h2 id="一、乐观锁与悲观锁"><a href="#一、乐观锁与悲观锁" class="headerlink" title="一、乐观锁与悲观锁"></a>一、乐观锁与悲观锁</h2><p>从<strong>宏观上来分类</strong>，锁可以分为乐观锁与悲观锁。注意，这里说的的锁可以是数据库中的锁，也可以是 <code>Java</code>、<code>Python</code> 等开发语言中的锁技术。</p>
-<h3 id="1-1-悲观锁"><a href="#1-1-悲观锁" class="headerlink" title="1.1 悲观锁"></a>1.1 悲观锁</h3><p>悲观锁是一种悲观思想，即认为写多，遇到并发写的可能性高。悲观锁在持有数据的时候总会把<strong>资源</strong>或者<strong>数据</strong>锁住，这样其他线程想要请求这个资源的时候就会阻塞，直到等到悲观锁把资源释放为止。</p>
+<h2 id="一、乐观锁与悲观锁"><a href="#一、乐观锁与悲观锁" class="headerlink" title="一、乐观锁与悲观锁"></a>一、乐观锁与悲观锁</h2><h3 id="1-1-悲观锁"><a href="#1-1-悲观锁" class="headerlink" title="1.1 悲观锁"></a>1.1 悲观锁</h3><p>悲观锁是一种悲观思想，即认为写多，遇到并发写的可能性高。悲观锁在持有数据的时候总会把<strong>资源</strong>或者<strong>数据</strong>锁住，这样其他线程想要请求这个资源的时候就会阻塞，直到等到悲观锁把资源释放为止。</p>
 <blockquote>
 <p>悲观锁的实现往往依靠数据库本身的锁功能实现。</p>
 </blockquote>
@@ -2594,8 +2593,8 @@
       </categories>
       <tags>
         <tag>if else</tag>
-        <tag>策略模式</tag>
         <tag>工厂模式</tag>
+        <tag>策略模式</tag>
       </tags>
   </entry>
   <entry>
