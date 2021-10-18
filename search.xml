@@ -1,6 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>【MySQL】主从同步</title>
+    <url>/2021/10/02/bab1265d.html</url>
+    <content><![CDATA[<p>面试中，经常被问到MySQL中主从同步的原理是什么？什么是主从延迟？如何解决主从同步延迟问题？</p>
+<a id="more"></a>
+
+<p>随着业务量的增长，高并发，数据库服务器宕机等问题频繁出现，单台MySQL服务器将会成为系统瓶颈。</p>
+<p>为了解决此问题，通常会使用集群主从同步模式（Master-Slave）来同步数据，通过读写分离（MySQL-Proxy）来提升数据库的并发负载能力。</p>
+<h2 id="一、先认识主角【binlog】"><a href="#一、先认识主角【binlog】" class="headerlink" title="一、先认识主角【binlog】"></a>一、先认识主角【binlog】</h2><blockquote>
+<p>MySQL主从之间数据同步主要通过 <code>binlog</code> 日志实现。</p>
+</blockquote>
+<h3 id="1-1-binlog"><a href="#1-1-binlog" class="headerlink" title="1.1 binlog"></a>1.1 <code>binlog</code></h3><p>是指用于记录数据库执行的写入性操作(不包括查询)信息，以二进制的形式保存在磁盘中，可以简单理解为记录的就是sql语句。</p>
+<h3 id="1-2-binlog-的主要使用场景有"><a href="#1-2-binlog-的主要使用场景有" class="headerlink" title="1.2 binlog 的主要使用场景有"></a>1.2 <code>binlog</code> 的主要使用场景有</h3><ol>
+<li>用于主从复制，在主从结构中，<code>binlog</code> 作为操作记录从 <code>master</code> 被发送到 <code>slave</code>，<code>slave</code> 服务器从 <code>master</code> 接收到的日志保存到 <code>relay log</code> 中；</li>
+<li>用于数据备份，在数据库备份文件生成后，<code>binlog</code> 保存了数据库备份后的详细信息，以便下一次备份能从备份点开始；</li>
+</ol>
+<h3 id="1-3-binlog-格式"><a href="#1-3-binlog-格式" class="headerlink" title="1.3 binlog 格式"></a>1.3 <code>binlog</code> 格式</h3><p>有三种格式，分别为 <code>Statement</code> 、 <code>Row</code> 和 <code>Mixed</code>。</p>
+<ul>
+<li><code>Statement</code>格式 </li>
+</ul>
+<p>基于<code>sql</code>语句的复制，每一条会修改数据的<code>sql</code>都会记录在<code>binlog</code>中。</p>
+<ol>
+<li>优点：不需要记录每一行的变化，减少了<code>binlog</code>日志量，节约了<code>IO</code>，提高性能；</li>
+<li>缺点：由于记录的只是执行语句，但由于<code>sql</code>的执行是有上下文的,因此在保存的时候需要保存相关的信息,同时还有一些使用了函数(比如 <code>uuid()</code> 函数)之类的语句无法被记录复制。</li>
+</ol>
+<ul>
+<li><code>Row</code>格式</li>
+</ul>
+<p>基于行的复制，记录单元为每一行的改动,基本是可以全部记下来。</p>
+<ol>
+<li>优点：会记录每次操作的源数据与修改后的目标数据,绝对精准的还原，从而保证了数据的安全与可靠，并且复制和数据恢复过程可以是并发进行的;</li>
+<li>缺点：可能会导致大量行的改动(比如<code>alter table</code>),这种模式的文件保存的信息太多,日志量太大。</li>
+</ol>
+<ul>
+<li><code>Mixed</code>格式</li>
+</ul>
+<p>一种折中的方案,普通操作使用<code>Statement</code>记录，当无法使用<code>Statement</code>的时候使用<code>Row</code>。</p>
+<h2 id="二、主从同步过程"><a href="#二、主从同步过程" class="headerlink" title="二、主从同步过程"></a>二、主从同步过程</h2><h3 id="2-1-主从同步优势"><a href="#2-1-主从同步优势" class="headerlink" title="2.1 主从同步优势"></a>2.1 主从同步优势</h3><ol>
+<li>读写分离，缓解数据库压力(主数据库用来做数据写入，从数据库用来做数据读取)；</li>
+<li>一主多从，系统可拓展性和高可用性；</li>
+<li>数据备份容灾，异地双活，保证主库异常随时切换，提高系统容错能力。</li>
+</ol>
+<h3 id="2-2-实现过程"><a href="#2-2-实现过程" class="headerlink" title="2.2 实现过程"></a>2.2 实现过程</h3><p><img src="#" alt="风尘博客"></p>
+<ol>
+<li><code>master</code>库上的数据发生改变时，则将其改变写入<code>binlog</code>中；</li>
+<li><code>slave</code>库在一定时间间隔内对<code>master</code>进行<code>binlog</code>探测是否发生改变，如发生改变，则开启<code>I/O</code>线程连接<code>Master</code>事件，请求从执行<code>binlog</code>日志文件中的指定位置，开始读取<code>binlog</code>至<code>slave</code>库；</li>
+<li><code>master</code>库接收到从库的<code>IO</code>线程请求后，其上复制的<code>dump</code>线程会根据<code>Slave</code>的请求信息分批读取<code>binlog</code>文件然后返回给从库的<code>IO</code>线程；</li>
+<li><code>slave</code>库的<code>I/O</code>线程获取到<code>master</code>库上<code>IO</code>线程发送的日志内容后，会将<code>binlog</code>日志内容依次写到<code>slave</code>库的<code>relay Log</code>（即中继日志）文件的最末端,并将新的<code>binlog</code>文件名和位置记录到<code>master-info</code>文件中，以便下一次读取<code>master</code>库<code>binlog</code>日志时能告诉<code>master</code>服务器从新<code>binlog</code>日志的指定文件及位置开始读取新的<code>binlog</code>日志内容；</li>
+<li><code>slave</code>库服务器的<code>SQL</code>线程会实时监测到本地<code>relay log</code>中新增了日志内容，然后把<code>relay log</code>中的日志翻译成<code>sql</code>并且按照顺序执行<code>sql</code>来更新从库的数据。</li>
+</ol>
+<h2 id="三、主从延迟"><a href="#三、主从延迟" class="headerlink" title="三、主从延迟"></a>三、主从延迟</h2><h3 id="3-1-产生延迟的原因"><a href="#3-1-产生延迟的原因" class="headerlink" title="3.1 产生延迟的原因"></a>3.1 产生延迟的原因</h3><ul>
+<li>从库的机器性能比主库要差</li>
+</ul>
+<p>比如将<code>20</code>台主库放在<code>4</code>台机器，把从库放在一台机器。这个时候进行更新操作，由于更新时会触发大量读操作，导致从库机器上的多个从库争夺资源，导致主从延迟。</p>
+<ul>
+<li>从库的压力大</li>
+</ul>
+<p>按照正常的策略，读写分离，主库提供写能力，从库提供读能力。将进行大量查询放在从库上，结果导致从库上耗费了大量的CPU资源，进而影响了同步速度，造成主从延迟。</p>
+<ul>
+<li>大事务的执行</li>
+</ul>
+<p>一旦执行大事务，那么主库必须要等到事务完成之后才会写入<code>binlog</code>。比如主库执行了一条<code>insert … select</code>非常大的插入操作，该操作产生了近几百<code>G</code>的<code>binlog</code>文件传输到只读节点，进而导致了只读节点出现应用<code>binlog</code>延迟。</p>
+<ul>
+<li>主库的DDL(alter、drop、create)</li>
+</ul>
+<p>只读节点与主库的DDL同步是串行进行，如果DDL操作在主库执行时间很长，那么从库也会消耗同样的时间，比如在主库对一张500W的表添加一个字段耗费了10分钟，那么从节点上也会耗费10分钟。</p>
+<ul>
+<li>锁冲突</li>
+</ul>
+<p>锁冲突问题也可能导致从节点的SQL线程执行慢，比如从机上有一些<code>select .... for update</code>的 <code>sql</code> 等。</p>
+<h3 id="3-2-主从延迟解决方案"><a href="#3-2-主从延迟解决方案" class="headerlink" title="3.2 主从延迟解决方案"></a>3.2 主从延迟解决方案</h3><p>在高并发场景或者网络不佳的场景，如果存在较大的主从同步数据延迟，这时候读请求去读从库，就会读到旧数据。这时候最简单暴力的方法，就是<strong>强制读主库</strong>。实际上可以使用【缓存标记法】。</p>
+<p><img src="#" alt="风尘博客"></p>
+<ol>
+<li><code>A</code> 发起写请求，更新主库数据，并在缓存中设置一个标记，表示数据已更新，标记格式为：<code>userId+业务Id</code>；</li>
+<li>设置此标记，设置过期时间（估值为主库和从库同步延迟的时间）;</li>
+<li><code>B</code>发起读请求，先判断此请求，在缓存中有没有更新标记;</li>
+<li>如果存在标记，走主库；如果没有，请求走从库。</li>
+</ol>
+<p>这个方案，解决了数据不一致问题，但是每次请求都要先跟缓存打交道，会影响系统吞吐。</p>
+]]></content>
+      <categories>
+        <category>MySQL</category>
+      </categories>
+      <tags>
+        <tag>MySQL</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>【JDK】分析 String str=&quot;&quot; 与 new String()</title>
     <url>/2021/06/12/e408f44d.html</url>
     <content><![CDATA[<p><code>String str=&quot;&quot;</code>与<code>new String()</code> 没区别？看完本文，希望你有所收获。</p>
@@ -2592,9 +2679,9 @@
         <category>设计模式</category>
       </categories>
       <tags>
-        <tag>if else</tag>
         <tag>工厂模式</tag>
         <tag>策略模式</tag>
+        <tag>if else</tag>
       </tags>
   </entry>
   <entry>
@@ -4614,8 +4701,8 @@
         <category>代码设计</category>
       </categories>
       <tags>
-        <tag>validator</tag>
         <tag>if else</tag>
+        <tag>validator</tag>
       </tags>
   </entry>
   <entry>
