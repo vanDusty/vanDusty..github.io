@@ -29,7 +29,7 @@
 <meta property="og:image" content="https://www.dusty.vip/2021/10/02/bab1265d.html#">
 <meta property="og:image" content="https://www.dusty.vip/2021/10/02/bab1265d.html#">
 <meta property="article:published_time" content="2021-10-02T14:13:52.000Z">
-<meta property="article:modified_time" content="2021-10-18T14:50:48.495Z">
+<meta property="article:modified_time" content="2021-10-18T15:09:56.676Z">
 <meta property="article:author" content="Van">
 <meta property="article:tag" content="MySQL">
 <meta name="twitter:card" content="summary">
@@ -275,7 +275,7 @@ document.write('<script src="' + src + '" id="sozz"><\/script>');
 <p>MySQL主从之间数据同步主要通过 <code>binlog</code> 日志实现。</p>
 </blockquote>
 <h3 id="1-1-binlog"><a href="#1-1-binlog" class="headerlink" title="1.1 binlog"></a>1.1 <code>binlog</code></h3><p>是指用于记录数据库执行的写入性操作(不包括查询)信息，以二进制的形式保存在磁盘中，可以简单理解为记录的就是sql语句。</p>
-<h3 id="1-2-binlog-的主要使用场景有"><a href="#1-2-binlog-的主要使用场景有" class="headerlink" title="1.2 binlog 的主要使用场景有"></a>1.2 <code>binlog</code> 的主要使用场景有</h3><ol>
+<h3 id="1-2-binlog-主要使用场景"><a href="#1-2-binlog-主要使用场景" class="headerlink" title="1.2 binlog 主要使用场景"></a>1.2 <code>binlog</code> 主要使用场景</h3><ol>
 <li>用于主从复制，在主从结构中，<code>binlog</code> 作为操作记录从 <code>master</code> 被发送到 <code>slave</code>，<code>slave</code> 服务器从 <code>master</code> 接收到的日志保存到 <code>relay log</code> 中；</li>
 <li>用于数据备份，在数据库备份文件生成后，<code>binlog</code> 保存了数据库备份后的详细信息，以便下一次备份能从备份点开始；</li>
 </ol>
@@ -342,6 +342,7 @@ document.write('<script src="' + src + '" id="sozz"><\/script>');
 <li>如果存在标记，走主库；如果没有，请求走从库。</li>
 </ol>
 <p>这个方案，解决了数据不一致问题，但是每次请求都要先跟缓存打交道，会影响系统吞吐。</p>
+<p>【<a href="https://juejin.cn/post/7020047661956857863" target="_blank" rel="noopener">参考文章</a>】</p>
 
     </div>
 
@@ -377,7 +378,10 @@ document.write('<script src="' + src + '" id="sozz"><\/script>');
     <a href="/2021/06/12/e408f44d.html" rel="prev" title="【JDK】分析 String str="" 与 new String()">
       <i class="fa fa-chevron-left"></i> 【JDK】分析 String str="" 与 new String()
     </a></div>
-      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2021/10/30/34b0cc40.html" rel="next" title="【面试】程序员的简历该怎么写？.md">
+      【面试】程序员的简历该怎么写？.md <i class="fa fa-chevron-right"></i>
+    </a></div>
     </div>
       </footer>
     
@@ -437,7 +441,7 @@ document.write('<script src="' + src + '" id="sozz"><\/script>');
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、先认识主角【binlog】"><span class="nav-number">1.</span> <span class="nav-text">一、先认识主角【binlog】</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-binlog"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 binlog</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-binlog-的主要使用场景有"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 binlog 的主要使用场景有</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-binlog-格式"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 binlog 格式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、主从同步过程"><span class="nav-number">2.</span> <span class="nav-text">二、主从同步过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-主从同步优势"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 主从同步优势</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-实现过程"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 实现过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、主从延迟"><span class="nav-number">3.</span> <span class="nav-text">三、主从延迟</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-产生延迟的原因"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 产生延迟的原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-主从延迟解决方案"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 主从延迟解决方案</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、先认识主角【binlog】"><span class="nav-number">1.</span> <span class="nav-text">一、先认识主角【binlog】</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-binlog"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 binlog</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-binlog-主要使用场景"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 binlog 主要使用场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-binlog-格式"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 binlog 格式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、主从同步过程"><span class="nav-number">2.</span> <span class="nav-text">二、主从同步过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-主从同步优势"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 主从同步优势</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-实现过程"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 实现过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、主从延迟"><span class="nav-number">3.</span> <span class="nav-text">三、主从延迟</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-产生延迟的原因"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 产生延迟的原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-主从延迟解决方案"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 主从延迟解决方案</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -455,16 +459,16 @@ document.write('<script src="' + src + '" id="sozz"><\/script>');
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-count">60</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-count">20</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">58</span>
+        <span class="site-state-item-count">59</span>
         <span class="site-state-item-name">标签</span>
       </div>
   </nav>
@@ -514,13 +518,13 @@ document.write('<script src="' + src + '" id="sozz"><\/script>');
       <i class="fa fa-area-chart"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">383k</span>
+    <span title="站点总字数">386k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">11:36</span>
+    <span title="站点阅读时长">11:41</span>
 </div><style>
     .custom-sidebar {
         margin-top: 20px;

@@ -1,6 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>【面试】程序员的简历该怎么写？.md</title>
+    <url>/2021/10/30/34b0cc40.html</url>
+    <content><![CDATA[<p>简历是我们面试的敲门砖，简历基本属于面试流程的50%，好的简历面试官一看就能被吸引，大部分简历被扔到废纸篓。</p>
+<a id="more"></a>
+
+<p>程序员就应该拿技术说话，「技术总结」是一份程序员简历的重中之重。除了大神和大牛，普通的程序员如果能在叙述中体现自己的风格，在技术总结中展示鲜明的个人形象，会更吸引公司的注意，拿到更多的面试邀请。</p>
+<h2 id="一、小小的建议"><a href="#一、小小的建议" class="headerlink" title="一、小小的建议"></a>一、小小的建议</h2><p>推荐大家使用 <code>Markdown</code> 语法写简历，然后再将 <code>Markdown</code> 格式转换为<code>PDF</code>格式后进行简历投递。</p>
+<ul>
+<li>为什么用 <code>Markdown</code> 语法？</li>
+</ul>
+<ol>
+<li><strong>语法真的非常简单</strong>;</li>
+<li>程序员的世界到处都是 <code>Markdown</code>，像简书，<code>GitChat</code>， <code>GitHub</code>，<code>CSDN</code> 等等都支持 <code>Markdown</code> 文档，正宗的官方技术文档都是使用 <code>Markdown</code> 来写的。</li>
+</ol>
+<blockquote>
+<p>如果你对Markdown语法不太了解的话，可以花五分钟简单看一下 <a href="http://www.markdown.cn" target="_blank" rel="noopener">Markdown 语法</a></p>
+</blockquote>
+<ul>
+<li>为什么转换为<code>PDF</code>格式后进行投递</li>
+</ul>
+<p>我们都知道，因为 <code>Word</code> 版本不同或者 <code>Mac</code>/<code>Windows</code> 系统等原因，如果不转成 <code>PDF</code>格式，你辛辛苦苦编辑的样式就可能到别人手上就变得<strong>惨不忍不</strong>。为了保证别人看到的样式跟你想要表达的一致，推荐转换为<code>PDF</code>格式后进行简历投递。</p>
+<h3 id="写简历的几个原则："><a href="#写简历的几个原则：" class="headerlink" title="写简历的几个原则："></a>写简历的几个原则：</h3><ol>
+<li>仔细核对，语句通畅，<strong>没错别字</strong>；</li>
+<li>尽量避免主观表述，少一点语义模糊的形容词，除非是大公司大牛，已经有成果撑腰，否则慎用「熟悉… …」、「使用过… …」</li>
+<li>简历上体现的项目细节，<strong>核心指标要有依据，能自圆其说</strong>，被认为在撒谎基本就GG；</li>
+<li><strong>不要过分夸大</strong>，包装自己的项目和技术，不懂的虚心请教，不要编或者瞎猜；</li>
+<li>如果面试官专挑冷门，你简历完全没涉及的技术点问，可以喷他，这种公司不去也罢。</li>
+</ol>
+<h2 id="二、-两大法则"><a href="#二、-两大法则" class="headerlink" title="二、 两大法则"></a>二、 两大法则</h2><h3 id="STAR-法则"><a href="#STAR-法则" class="headerlink" title="STAR 法则"></a>STAR 法则</h3><ol>
+<li>Situation： 事情是在什么情况下发生；</li>
+<li>Task:： 你是如何明确你的任务的；</li>
+<li>Action： 针对这样的情况分析，你采用了什么行动方式；</li>
+<li>Result： 结果怎样，在这样的情况下你学习到了什么。</li>
+</ol>
+<blockquote>
+<p>简而言之，STAR 法则，就是一种讲述自己故事的方式，或者说，是一个清晰、条理的作文模板。不管是什么，合理熟练运用此法则，可以轻松的对面试官描述事物的逻辑方式，表现出自己分析阐述问题的清晰性、条理性和逻辑性。</p>
+</blockquote>
+<h3 id="FAB-法则"><a href="#FAB-法则" class="headerlink" title="FAB 法则"></a>FAB 法则</h3><ol>
+<li>Feature： 是什么；</li>
+<li>Advantage： 比别人好在哪些地方；</li>
+<li>Benefifit： 如果雇佣你，招聘方会得到什么好处。</li>
+</ol>
+<blockquote>
+<p>简单来说，这个法则主要是让你的面试官知道你的优势、招了你之后对公司有什么帮助。</p>
+</blockquote>
+<h2 id="三、简历模板"><a href="#三、简历模板" class="headerlink" title="三、简历模板"></a>三、简历模板</h2><h3 id="联系方式"><a href="#联系方式" class="headerlink" title="联系方式"></a>联系方式</h3><p>手机： 135****2021 <br><br>邮箱： ***@gmail.com <br><br>微信： **** <br><br>Github： **** <br><br>博客： **** <br></p>
+<h3 id="个人信息"><a href="#个人信息" class="headerlink" title="个人信息"></a>个人信息</h3><p>* 姓名 / 男 / 1995 <br><br>* 本科 / 浙江大学 / 软件工程 <br><br>* 工作年限：5年 <br><br>* 情况简介：目前在***大数据部门的**组，负责**系统的开发工作 <br><br>* 主要技术栈: Java JDK(1.8)、Spring、Redis、XXL-Job、Sofa、MySQL、Mybatis、Sharing-JDBC、Apollo、Kafka、Flink、Cat等</p>
+<h3 id="工作经历"><a href="#工作经历" class="headerlink" title="工作经历"></a>工作经历</h3><h4 id="公司名（2019-03-至今）"><a href="#公司名（2019-03-至今）" class="headerlink" title="公司名（2019.03 ~ 至今）"></a>公司名（2019.03 ~ 至今）</h4><p><strong>2020.03-至今       XX系统                   技术专家        系统负责人</strong></p>
+<p>项目背景：由于公司XX，以及XX，公司让我负责XX系统（简单2-3句话交代一下背景）。</p>
+<p>系统难点：XX业务流程复杂，涉及的XXX，外部XXX不稳定（突出项目难点）。</p>
+<ol>
+<li>流程设计，XX底层模板抽象，XX高度复用，XX似需求接入效率提升了50%，由 1周缩短为 3天（需求+业务效果）；</li>
+<li>线程池XX、子任务XX，根据外部系统 RRT 动态调整调用XX系统的QPS, XXXX 查询耗时缩短 73ms/笔;</li>
+<li>优化XXX，XXXX响应时间缩短至 XXX ms以内;</li>
+<li>XXXX任务分发，灵活调整 XXXX 任务执行DAG，XXX &amp; 测试上线时间缩短 30%；</li>
+<li>实现XXX验证器、XXXX 路由、XXXX处理、XXXX补偿 &amp; XXXX重试等技术手段，XXX成功率提升XXX;</li>
+<li>分布式限流，分布式调度任务灵活配置任务执行时间区间、频率、执行参数;</li>
+</ol>
+<p><strong>2019.03-2020.06       XX系统                资深研发工程师  主要开发人员</strong></p>
+<p>项目背景：由于公司XX，以及XX，公司让我负责XX系统（简单2-3句话交代一下背景）。</p>
+<p>系统难点：XX业务流程复杂，涉及的XXX，外部XXX不稳定（突出项目难点）。</p>
+<ol>
+<li>流程设计，XX底层模板抽象，XX高度复用，XX似需求接入效率提升了50%，由 1周缩短为 3天（需求+业务效果）；</li>
+<li>线程池XX、子任务XX，根据外部系统 RRT 动态调整调用XX系统的QPS, XXXX 查询耗时缩短 73ms/笔;</li>
+<li>优化XXX，XXXX响应时间缩短至 XXX ms以内;</li>
+<li>XXXX任务分发，灵活调整 XXXX 任务执行DAG，XXX &amp; 测试上线时间缩短 30%；</li>
+<li>实现XXX验证器、XXXX 路由、XXXX处理、XXXX补偿 &amp; XXXX重试等技术手段，XXX成功率提升XXX;</li>
+<li>分布式限流，分布式调度任务灵活配置任务执行时间区间、频率、执行参数;</li>
+</ol>
+<h4 id="XX公司（2016-03-2019-03）"><a href="#XX公司（2016-03-2019-03）" class="headerlink" title="XX公司（2016.03 ~ 2019.03）"></a>XX公司（2016.03 ~ 2019.03）</h4><p><strong>2017.01-2018.03       XX系统                研发工程师  主要开发人员</strong></p>
+<p>项目背景：由于公司XX，以及XX，公司让我负责XX系统（简单2-3句话交代一下背景）。</p>
+<p>系统难点：XX业务流程复杂，涉及的XXX，外部XXX不稳定（突出项目难点）。</p>
+<ol>
+<li>流程设计，XX底层模板抽象，XX高度复用，XX似需求接入效率提升了50%，由 1周缩短为 3天（需求+业务效果）；</li>
+<li>线程池XX、子任务XX，根据外部系统 RRT 动态调整调用XX系统的QPS, XXXX 查询耗时缩短 73ms/笔;</li>
+<li>优化XXX，XXXX响应时间缩短至 XXX ms以内;</li>
+<li>XXXX任务分发，灵活调整 XXXX 任务执行DAG，XXX &amp; 测试上线时间缩短 30%；</li>
+<li>实现XXX验证器、XXXX 路由、XXXX处理、XXXX补偿 &amp; XXXX重试等技术手段，XXX成功率提升XXX;</li>
+<li>分布式限流，分布式调度任务灵活配置任务执行时间区间、频率、执行参数;</li>
+</ol>
+<h2 id="四、小结"><a href="#四、小结" class="headerlink" title="四、小结"></a>四、小结</h2><h3 id="公司和项目经验是否分开？"><a href="#公司和项目经验是否分开？" class="headerlink" title="公司和项目经验是否分开？"></a>公司和项目经验是否分开？</h3><p>很多人喜欢公司和项目经历分开，我觉得其实没必要，本来工作经历就是跟公司绑定的。PS：仁者见仁智者见智，你有不同的想法，按照你觉得 OK 的改好了。</p>
+<h3 id="博客、Github-是否放到简历上？"><a href="#博客、Github-是否放到简历上？" class="headerlink" title="博客、Github 是否放到简历上？"></a>博客、Github 是否放到简历上？</h3><p>简而言之：<strong>有亮点！</strong>如果你的博客或者 Github 上有原创比较有深度的文章或者给某些<strong>知名开源项目提交过有意义的代码</strong>，写上去会帮你加分。反之，则不建议放上去。</p>
+<blockquote>
+<p>推荐一个在线编辑简历的网址 【<a href="http://cv.ftqq.com" target="_blank" rel="noopener">冷熊简历</a>】,他也给了一定建议，可以参考，按照相应的格式编写好你的简历，然后导出成 PDF 就可以了。</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>面试</category>
+      </categories>
+      <tags>
+        <tag>简历</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>【MySQL】主从同步</title>
     <url>/2021/10/02/bab1265d.html</url>
     <content><![CDATA[<p>面试中，经常被问到MySQL中主从同步的原理是什么？什么是主从延迟？如何解决主从同步延迟问题？</p>
@@ -12,7 +106,7 @@
 <p>MySQL主从之间数据同步主要通过 <code>binlog</code> 日志实现。</p>
 </blockquote>
 <h3 id="1-1-binlog"><a href="#1-1-binlog" class="headerlink" title="1.1 binlog"></a>1.1 <code>binlog</code></h3><p>是指用于记录数据库执行的写入性操作(不包括查询)信息，以二进制的形式保存在磁盘中，可以简单理解为记录的就是sql语句。</p>
-<h3 id="1-2-binlog-的主要使用场景有"><a href="#1-2-binlog-的主要使用场景有" class="headerlink" title="1.2 binlog 的主要使用场景有"></a>1.2 <code>binlog</code> 的主要使用场景有</h3><ol>
+<h3 id="1-2-binlog-主要使用场景"><a href="#1-2-binlog-主要使用场景" class="headerlink" title="1.2 binlog 主要使用场景"></a>1.2 <code>binlog</code> 主要使用场景</h3><ol>
 <li>用于主从复制，在主从结构中，<code>binlog</code> 作为操作记录从 <code>master</code> 被发送到 <code>slave</code>，<code>slave</code> 服务器从 <code>master</code> 接收到的日志保存到 <code>relay log</code> 中；</li>
 <li>用于数据备份，在数据库备份文件生成后，<code>binlog</code> 保存了数据库备份后的详细信息，以便下一次备份能从备份点开始；</li>
 </ol>
@@ -79,6 +173,7 @@
 <li>如果存在标记，走主库；如果没有，请求走从库。</li>
 </ol>
 <p>这个方案，解决了数据不一致问题，但是每次请求都要先跟缓存打交道，会影响系统吞吐。</p>
+<p>【<a href="https://juejin.cn/post/7020047661956857863" target="_blank" rel="noopener">参考文章</a>】</p>
 ]]></content>
       <categories>
         <category>MySQL</category>
@@ -2679,9 +2774,9 @@
         <category>设计模式</category>
       </categories>
       <tags>
+        <tag>if else</tag>
         <tag>工厂模式</tag>
         <tag>策略模式</tag>
-        <tag>if else</tag>
       </tags>
   </entry>
   <entry>
@@ -4701,8 +4796,8 @@
         <category>代码设计</category>
       </categories>
       <tags>
-        <tag>if else</tag>
         <tag>validator</tag>
+        <tag>if else</tag>
       </tags>
   </entry>
   <entry>
