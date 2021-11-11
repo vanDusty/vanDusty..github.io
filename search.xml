@@ -1,9 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>【面试】程序员的简历该怎么写？.md</title>
+    <title>【Git 系列】git stash</title>
+    <url>/2021/11/11/5fd8a966.html</url>
+    <content><![CDATA[<p><code>stash</code>在英文意思是隐藏。<code>git stash</code> 的作用也是隐藏没完成的代码，防止它干扰<strong>别人</strong>或者<strong>新分支</strong>的工作。</p>
+<a id="more"></a>
+
+<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><h3 id="1-1-我们经常会遇到这样的情况"><a href="#1-1-我们经常会遇到这样的情况" class="headerlink" title="1.1 我们经常会遇到这样的情况"></a>1.1 我们经常会遇到这样的情况</h3><blockquote>
+<p>正在 <code>dev</code> 分支开发新功能，做到一半时有人过来反馈一个 <code>bug</code> ，需要马上解决，但是新功能做到了一半你又不想提交。</p>
+</blockquote>
+<p>这时就可以使用 <code>git stash</code> 命令先把当前进度保存起来，然后切换到另一个分支去修改<code>bug</code>；修改完提交后，再切回 <code>dev</code> 分支，使用<code>git stash pop</code>来恢复之前的进度继续开发新功能。</p>
+<p>看到这里，有些小伙伴就有疑问：没必要啊，修 <code>BUG</code> 的时候，直接切换分支，修改完提交后再切回来到原来的分支不就行了。</p>
+<h3 id="1-2-真的要这么麻烦吗？"><a href="#1-2-真的要这么麻烦吗？" class="headerlink" title="1.2 真的要这么麻烦吗？"></a>1.2 真的要这么麻烦吗？</h3><ul>
+<li>比如有情景如下：</li>
+</ul>
+<ol>
+<li>在 <code>dev</code> 分支下创建一个文件 <code>dev_file.txt</code>，并 <code>add</code>，让它 <code>stage</code>；</li>
+<li>这时切到 <code>master</code> 分支，你会看到这个 <code>dev_file.txt</code> 居然也在 <code>master</code> 分支里。他不是应该只在 <code>dev</code> 分支吗？</li>
+</ol>
+<ul>
+<li>如果你试试你再试试：</li>
+</ul>
+<ol>
+<li>切回 <code>dev</code> 分支，执行 <code>git stash</code>；</li>
+<li>这时你在切回 <code>master</code> 分支， <code>dev_file.txt</code> 就消失了。</li>
+</ol>
+<p>这时候，我不禁想说：<strong>git stash，YYDS ！</strong></p>
+<h2 id="二、git-stash"><a href="#二、git-stash" class="headerlink" title="二、git stash"></a>二、git stash</h2><p>当你执行 <code>git stash</code> 时会提醒你：</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">Saved working directory and index state WIP on newF2: b63fbcb add dev_file.txt</span><br><span class="line">HEAD is now at b63fbcb add dev_file.txt。</span><br></pre></td></tr></table></figure>
+
+<p>它已经把 <code>dev_file.txt</code> 保存好了。</p>
+<h3 id="2-1-git-stash-干了什么"><a href="#2-1-git-stash-干了什么" class="headerlink" title="2.1  git stash 干了什么"></a>2.1  git stash 干了什么</h3><p>它会保存当前工作进度，会把暂存区和工作区的改动保存到一个未完结变更的堆栈中；执行完这个命令后，在运行<code>git status</code>命令，就会发现当前是一个干净的工作区，没有任何改动。</p>
+<blockquote>
+<ol>
+<li><code>git stash</code> 是本地的，不会上传到服务器上；</li>
+<li>可以通过使用<code>git stash save &#39;message...&#39;</code>可以添加一些注释。</li>
+</ol>
+</blockquote>
+<h3 id="2-2-git-stash-相关命令"><a href="#2-2-git-stash-相关命令" class="headerlink" title="2.2 git stash 相关命令"></a>2.2 git stash 相关命令</h3><table>
+<thead>
+<tr>
+<th>命令名</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>git stash</td>
+<td>隐藏当前的工作现场, 此时, git status的结果是 clean</td>
+</tr>
+<tr>
+<td>git stash list</td>
+<td>查看所有隐藏, 每一行的冒号前面的字符串就是标识此隐藏的id</td>
+</tr>
+<tr>
+<td>git stash apply <id></td>
+<td>重新显示标识为 id 的隐藏</td>
+</tr>
+<tr>
+<td>git stash drop <id></td>
+<td>git apply恢复隐藏后, 需要手动删除 list 列表中的记录</td>
+</tr>
+<tr>
+<td>git stash pop</td>
+<td>恢复最新的进度到工作区</td>
+</tr>
+<tr>
+<td>git stash pop stash@[stash_id]</td>
+<td>恢复指定的进度到工作区</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>如：<code>git stash pop stash@{1}</code>。<code>stash_id</code>是通过<code>git stash list</code>命令得到的；</p>
+</blockquote>
+<h2 id="三、git-stash-使用场景"><a href="#三、git-stash-使用场景" class="headerlink" title="三、git stash 使用场景"></a>三、git stash 使用场景</h2><h3 id="3-1-有人与我改动同一分支"><a href="#3-1-有人与我改动同一分支" class="headerlink" title="3.1 有人与我改动同一分支"></a>3.1 有人与我改动同一分支</h3><blockquote>
+<p>我在本地修改好后，发现远程分支已经被改动了，此时我本地也被改动了就造成了冲突，无法 <code>push</code> 或者 <code>pull</code>。</p>
+</blockquote>
+<p>此时，就可以用 <code>git stash</code> 来处理</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">// 把本地的改动暂存起来</span><br><span class="line">git stash </span><br><span class="line">// 拉取远程分支（此时本地分支会回滚到上次commit的情况，你的改动都存在stash中）</span><br><span class="line">git pull  </span><br><span class="line">// 将stash中改动重新加回本地分支，就可以继续修改了，当然，如果改好了就是add,commit,push</span><br><span class="line">git stash pop</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-不小心改动了其他分支"><a href="#3-2-不小心改动了其他分支" class="headerlink" title="3.2 不小心改动了其他分支"></a>3.2 不小心改动了其他分支</h3><blockquote>
+<p>例如忘记切换，将代码写错了分支，直接在 <code>master</code> 分支上做改动，这里假设我的分支是 <code>feature/category_vechice</code> 分支。</p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">// 把本地当前改动暂存起来，此时master分支就恢复到了上次拉取时的状态</span><br><span class="line">git stash</span><br><span class="line">// 切换到需要改动的分支</span><br><span class="line">git checkout test</span><br><span class="line">// 将改动pop到自己当前的分支</span><br><span class="line">git stash pop</span><br></pre></td></tr></table></figure>
+
+<h2 id="四、小结"><a href="#四、小结" class="headerlink" title="四、小结"></a>四、小结</h2><blockquote>
+<p>顾名思义，<code>stash</code> 就是一个栈，平时我们把需要暂存的文件存到栈中，把代码恢复到上次拉取的状态以进行操作。</p>
+</blockquote>
+<p>就我个人使用而言，<code>git stash pop</code> 就已经满足日常需要了，毕竟频繁的线上 <code>bug</code> 或者忘记切代码啥的，我们应该考虑的不是这个命令的问题，是开发质量的范畴了。</p>
+]]></content>
+      <categories>
+        <category>Git 系列</category>
+      </categories>
+      <tags>
+        <tag>Git 命令</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>【面试】程序员的简历该怎么写？</title>
     <url>/2021/10/30/34b0cc40.html</url>
-    <content><![CDATA[<p>简历是我们面试的敲门砖，简历基本属于面试流程的50%，好的简历面试官一看就能被吸引，大部分简历被扔到废纸篓。</p>
+    <content><![CDATA[<blockquote>
+<p>简历是我们面试的敲门砖，简历基本属于面试流程的50%，好的简历面试官一看就能被吸引，大部分简历被扔到废纸篓。</p>
+</blockquote>
 <a id="more"></a>
 
 <p>程序员就应该拿技术说话，「技术总结」是一份程序员简历的重中之重。除了大神和大牛，普通的程序员如果能在叙述中体现自己的风格，在技术总结中展示鲜明的个人形象，会更吸引公司的注意，拿到更多的面试邀请。</p>
