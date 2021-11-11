@@ -2,7 +2,7 @@
 <search>
   <entry>
     <title>【Git 系列】git stash</title>
-    <url>/2021/11/11/5fd8a966.html</url>
+    <url>/2021/11/01/5fd8a966.html</url>
     <content><![CDATA[<p><code>stash</code>在英文意思是隐藏。<code>git stash</code> 的作用也是隐藏没完成的代码，防止它干扰<strong>别人</strong>或者<strong>新分支</strong>的工作。</p>
 <a id="more"></a>
 
