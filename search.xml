@@ -615,7 +615,7 @@
       </tags>
   </entry>
   <entry>
-    <title>【MySQL优化】分页查询优化</title>
+    <title>【SQL 优化】分页查询优化</title>
     <url>/2021/08/22/4d9c49a9.html</url>
     <content><![CDATA[<blockquote>
 <p>当需要从数据库查询的表有上万条记录的时候，一次性查询所有结果会变得很慢，特别是随着数据量的增加特别明显，这时需要使用分页查询。</p>
@@ -700,11 +700,11 @@
 <p><a href="http://uusama.com/458.html" target="_blank" rel="noopener">参考文章</a></p>
 ]]></content>
       <categories>
-        <category>代码优化</category>
+        <category>SQL 优化</category>
       </categories>
       <tags>
         <tag>MySQL</tag>
-        <tag>MySQL优化</tag>
+        <tag>SQL</tag>
       </tags>
   </entry>
   <entry>
@@ -1202,8 +1202,8 @@
         <category>SQL 优化</category>
       </categories>
       <tags>
-        <tag>SQL 优化</tag>
         <tag>SQL</tag>
+        <tag>SQL 优化</tag>
       </tags>
   </entry>
   <entry>
@@ -3300,8 +3300,8 @@
       </categories>
       <tags>
         <tag>if else</tag>
-        <tag>策略模式</tag>
         <tag>工厂模式</tag>
+        <tag>策略模式</tag>
       </tags>
   </entry>
   <entry>
