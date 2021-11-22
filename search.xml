@@ -642,13 +642,68 @@
 </ul>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">1</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">10</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">100</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">1000</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">10000</span>;</span><br></pre></td></tr></table></figure>
 
-<p>| 查询记录数 ｜ 执行三次时间 |<br>| – | – |<br>| 查询1条记录 | 3072ms 3092ms 3002ms |<br>| 查询10条记录 | 3081ms 3077ms 3032ms |<br>| 查询100条记录 | 3118ms 3200ms 3128ms |<br>| 查询1000条记录 | 3412ms 3468ms 3394ms |<br>| 查询10000条记录 | 3749ms 3802ms 3696ms |</p>
+<table>
+<thead>
+<tr>
+<th>查询记录数</th>
+<th>执行三次时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>查询1条记录</td>
+<td>3072ms 3092ms 3002ms</td>
+</tr>
+<tr>
+<td>查询10条记录</td>
+<td>3081ms 3077ms 3032ms</td>
+</tr>
+<tr>
+<td>查询100条记录</td>
+<td>3118ms 3200ms 3128ms</td>
+</tr>
+<tr>
+<td>查询1000条记录</td>
+<td>3412ms 3468ms 3394ms</td>
+</tr>
+<tr>
+<td>查询10000条记录</td>
+<td>3749ms 3802ms 3696ms</td>
+</tr>
+</tbody></table>
 <ul>
 <li>查询偏移量偏大时</li>
 </ul>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">100</span>,<span class="number">100</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">1000</span>,<span class="number">100</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">100</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">100000</span>,<span class="number">100</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">1000000</span>,<span class="number">100</span>;</span><br></pre></td></tr></table></figure>
 
-<p>| 查询偏移量 ｜ 执行三次时间 |<br>| – | – |<br>| 查询100偏移 | 25ms 24ms 24ms |<br>| 查询1000偏移 | 78ms 76ms 77ms |<br>| 查询10000偏移 | 3092ms 3212ms 3128ms |<br>| 查询100000偏移 | 3878ms 3812ms 3798ms |<br>| 查询1000000偏移 | 14608ms 14062ms 14700ms |</p>
+
+<table>
+<thead>
+<tr>
+<th>查询偏移量</th>
+<th>执行三次时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>查询100偏移</td>
+<td>25ms 24ms 24ms</td>
+</tr>
+<tr>
+<td>查询1000偏移</td>
+<td>78ms 76ms 77ms</td>
+</tr>
+<tr>
+<td>查询10000偏移</td>
+<td>3092ms 3212ms 3128ms</td>
+</tr>
+<tr>
+<td>查询100000偏移</td>
+<td>3878ms 3812ms 3798ms</td>
+</tr>
+<tr>
+<td>查询1000000偏移</td>
+<td>14608ms 14062ms 14700ms</td>
+</tr>
+</tbody></table>
 <ol>
 <li>从查询时间来看，基本可以确定，在偏移量不大时，在查询记录量增大时时，查询时间基本没有差距；</li>
 <li>但随着查询偏移量越来越大，所花费的时间增加特别明显。</li>
