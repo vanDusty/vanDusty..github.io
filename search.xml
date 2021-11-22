@@ -615,6 +615,99 @@
       </tags>
   </entry>
   <entry>
+    <title>【MySQL优化】分页查询优化</title>
+    <url>/2021/08/22/4d9c49a9.html</url>
+    <content><![CDATA[<blockquote>
+<p>当需要从数据库查询的表有上万条记录的时候，一次性查询所有结果会变得很慢，特别是随着数据量的增加特别明显，这时需要使用分页查询。</p>
+</blockquote>
+<a id="more"></a>
+
+<h2 id="一、分页查询真的一直快吗？"><a href="#一、分页查询真的一直快吗？" class="headerlink" title="一、分页查询真的一直快吗？"></a>一、分页查询真的一直快吗？</h2><h3 id="1-1-一般分页查询"><a href="#1-1-一般分页查询" class="headerlink" title="1.1 一般分页查询"></a>1.1 一般分页查询</h3><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> table_name <span class="keyword">limit</span> <span class="keyword">start</span>, <span class="keyword">count</span></span><br></pre></td></tr></table></figure>
+
+<p><code>MySQL</code> 的分页语句，作为开发，再熟悉不过了吧，需注意以下几点：</p>
+<ol>
+<li>第一个参数指定第一个返回记录行的偏移量(从<code>0</code>开始)；</li>
+<li>第二个参数指定返回记录行的最大数目；</li>
+<li>如果只给定一个参数，表示返回最大的记录行数目；</li>
+<li>第二个参数为 <code>-1</code> 表示检索从某一个偏移量到记录集的结束所有的记录行<br>初始记录行的偏移量是 <code>0</code>(而不是 <code>1</code>)。</li>
+</ol>
+<ul>
+<li>例如</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">1000</span>,<span class="number">10</span>;</span><br></pre></td></tr></table></figure>
+
+<p>该语句将会从表 <code>orders_history</code> 中查询偏移量从 <code>1000</code> 开始之后的 <code>10</code> 条数据，也就是第<code>1001</code>条到第<code>1010</code>条数据。</p>
+<h3 id="1-2-偏移量测试"><a href="#1-2-偏移量测试" class="headerlink" title="1.2 偏移量测试"></a>1.2 偏移量测试</h3><ul>
+<li>查询记录量增大时</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">1</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">10</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">100</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">1000</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">10000</span>;</span><br></pre></td></tr></table></figure>
+
+<p>| 查询记录数 ｜ 执行三次时间 |<br>| – | – |<br>| 查询1条记录 | 3072ms 3092ms 3002ms |<br>| 查询10条记录 | 3081ms 3077ms 3032ms |<br>| 查询100条记录 | 3118ms 3200ms 3128ms |<br>| 查询1000条记录 | 3412ms 3468ms 3394ms |<br>| 查询10000条记录 | 3749ms 3802ms 3696ms |</p>
+<ul>
+<li>查询偏移量偏大时</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">100</span>,<span class="number">100</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">1000</span>,<span class="number">100</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">10000</span>,<span class="number">100</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">100000</span>,<span class="number">100</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">1000000</span>,<span class="number">100</span>;</span><br></pre></td></tr></table></figure>
+
+<p>| 查询偏移量 ｜ 执行三次时间 |<br>| – | – |<br>| 查询100偏移 | 25ms 24ms 24ms |<br>| 查询1000偏移 | 78ms 76ms 77ms |<br>| 查询10000偏移 | 3092ms 3212ms 3128ms |<br>| 查询100000偏移 | 3878ms 3812ms 3798ms |<br>| 查询1000000偏移 | 14608ms 14062ms 14700ms |</p>
+<ol>
+<li>从查询时间来看，基本可以确定，在偏移量不大时，在查询记录量增大时时，查询时间基本没有差距；</li>
+<li>但随着查询偏移量越来越大，所花费的时间增加特别明显。</li>
+</ol>
+<p>传统分页查询方式会从数据库第一条记录开始扫描，所以偏移量越大，查询速度越慢。</p>
+<h2 id="二、分页优化-使用子查询优化"><a href="#二、分页优化-使用子查询优化" class="headerlink" title="二、分页优化-使用子查询优化"></a>二、分页优化-使用子查询优化</h2><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">100000</span>,<span class="number">1</span>;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">id</span> <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">100000</span>,<span class="number">1</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">and</span> </span><br><span class="line"><span class="keyword">id</span>&gt;=(<span class="keyword">select</span> <span class="keyword">id</span> <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">100000</span>,<span class="number">1</span>) </span><br><span class="line"><span class="keyword">limit</span> <span class="number">100</span>;</span><br></pre></td></tr></table></figure>
+<h3 id="2-1-基本思路"><a href="#2-1-基本思路" class="headerlink" title="2.1 基本思路"></a>2.1 基本思路</h3><blockquote>
+<p>这种方式适用于 <code>id</code> 递增的情况。</p>
+</blockquote>
+<p>先定位偏移位置的 <code>id</code>，然后往后查询。</p>
+<h3 id="2-2-示例"><a href="#2-2-示例" class="headerlink" title="2.2 示例"></a>2.2 示例</h3><ul>
+<li>先查询第 <code>10w</code> 条数据的位置</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">id</span> <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">100000</span>,<span class="number">1</span>;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>然后取 <code>ID</code> 值作起始标识定位下 <code>100</code> 条记录</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">and</span> </span><br><span class="line"><span class="keyword">id</span>&gt;=(<span class="keyword">select</span> <span class="keyword">id</span> <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">100000</span>,<span class="number">1</span>) </span><br><span class="line"><span class="keyword">limit</span> <span class="number">100</span>;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>对比下原分页语句</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> orders_history <span class="keyword">where</span> <span class="keyword">type</span>=<span class="number">8</span> <span class="keyword">limit</span> <span class="number">100000</span>,<span class="number">100</span>;</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>分页方式</th>
+<th>耗时</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>原分页</td>
+<td>3710ms</td>
+</tr>
+<tr>
+<td>子查询分页</td>
+<td>1327ms</td>
+</tr>
+</tbody></table>
+<p>这种方式相较于原始一般的查询方法，将会增快数倍。</p>
+<h3 id="2-3-关于数据表的id说明"><a href="#2-3-关于数据表的id说明" class="headerlink" title="2.3 关于数据表的id说明"></a>2.3 关于数据表的id说明</h3><blockquote>
+<p>一般情况下，在数据库中建立表的时候，强制为每一张表添加 <code>id</code> 递增字段，这样方便查询。</p>
+</blockquote>
+<p>如果像是订单库等数据量非常庞大，一般会进行分库分表。这个时候不建议使用数据库的 <code>id</code> 作为唯一标识，而应该使用分布式的高并发唯一 <code>id</code> 生成器来生成，并在数据表中使用另外的字段来存储这个唯一标识。</p>
+<p>使用先使用范围查询定位 <code>id</code> （或者索引），然后再使用索引进行定位数据，能够提高好几倍查询速度。即先 <code>select id</code>，然后再 <code>select *</code>。</p>
+<h2 id="三、总结"><a href="#三、总结" class="headerlink" title="三、总结"></a>三、总结</h2><p>在一些场景下，比如使用历史表的时候，或者出现过数据缺失问题时，可以考虑使用临时存储的表来记录分页的 <code>id</code>，使用分页的 <code>id</code> 来进行 <code>in</code> 查询。这样能够极大的提高传统的分页查询速度，尤其是数据量上千万的时候。</p>
+<p><a href="http://uusama.com/458.html" target="_blank" rel="noopener">参考文章</a></p>
+]]></content>
+      <categories>
+        <category>代码优化</category>
+      </categories>
+      <tags>
+        <tag>MySQL</tag>
+        <tag>MySQL优化</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>【JDK】分析 String str=&quot;&quot; 与 new String()</title>
     <url>/2021/06/12/e408f44d.html</url>
     <content><![CDATA[<p><code>String str=&quot;&quot;</code>与<code>new String()</code> 没区别？看完本文，希望你有所收获。</p>
