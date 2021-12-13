@@ -106,225 +106,6 @@
       </tags>
   </entry>
   <entry>
-    <title>【JDK 8】Stream 基础篇</title>
-    <url>/2021/11/12/87a2a94c.html</url>
-    <content><![CDATA[<blockquote>
-<p>在 <code>Java</code> 中，集合和数组是我们经常会用到的数据结构，需要经常对他们做增、删、改、查、聚合、统计、过滤等操作。</p>
-</blockquote>
-<a id="more"></a>
-
-
-<h2 id="一、Stream-简介"><a href="#一、Stream-简介" class="headerlink" title="一、Stream 简介"></a>一、Stream 简介</h2><p><code>Java8</code> 之后 使用 <code>Stream API</code> 可以像 <code>SQL</code> 语句从数据库查询数据的直观方式来提供一种对 <code>Java</code> 集合运算和表达的高阶抽象，极大提高 <code>Java</code> 程序员的生产力，让程序员写出高效率、干净、简洁的代码。</p>
-<h3 id="1-1-为什么叫【流】"><a href="#1-1-为什么叫【流】" class="headerlink" title="1.1 为什么叫【流】"></a>1.1 为什么叫【流】</h3><p><code>Stream API</code> 这种风格将要处理的元素集合看作一种流，流在管道中传输，并且可以在管道的节点上进行处理，比如筛选，排序，聚合等。但它跟 <code>I/O</code> 完全不是一回事儿，<code>Stream</code> 只是对集合对象功能的增强，它专注于对集合对象进行各种非常便利、高效的聚合操作，或者大批量数据操作。</p>
-<h3 id="1-2-Stream-特性"><a href="#1-2-Stream-特性" class="headerlink" title="1.2 Stream 特性"></a>1.2 Stream 特性</h3><ul>
-<li>无存储。</li>
-</ul>
-<p><code>Stream</code> 不是一种数据结构，它只是某种数据源的一个视图，数据源可以是一个数组，<code>Java</code> 容器或 <code>I/O</code>、<code>channel</code> 等。</p>
-<ul>
-<li>为函数式编程而生。</li>
-</ul>
-<p>对 <code>Stream</code> 的任何修改都不会修改背后的数据源，比如对 <code>Stream</code> 执行过滤操作并不会删除被过滤的元素，而是会产生一个不包含被过滤元素的新 <code>Stream</code>。</p>
-<ul>
-<li>惰式执行。</li>
-</ul>
-<p><code>Stream</code> 上的操作并不会立即执行，只有等到用户真正需要结果的时候才会执行。</p>
-<ul>
-<li>可消费性。</li>
-</ul>
-<p><code>Stream</code> 只能被【消费】一次，一旦遍历过就会失效，就像容器的迭代器那样，想要再次遍历必须重新生成。</p>
-<h3 id="1-3-为什么要使用-Stream"><a href="#1-3-为什么要使用-Stream" class="headerlink" title="1.3 为什么要使用 Stream"></a>1.3 为什么要使用 Stream</h3><p>函数式编程带来的好处尤为明显。这种代码更多地表达了业务逻辑的意图，而不是它的实现机制。易读的代码也易于维护、更可靠、更不容易出错。</p>
-<blockquote>
-<p>这么说吧，在我之前待的项目中，没有使用 <code>Stream</code> ，很多操作循环遍历去执行，感觉也还好。现在 <code>Stream</code> 用多了再回头去看，原来的代码简直太繁琐了。</p>
-</blockquote>
-<h2 id="二、流的创建"><a href="#二、流的创建" class="headerlink" title="二、流的创建"></a>二、流的创建</h2><p>创建流的方式很多，很多类中添加了一些方法来创建相应的流，但是开发中使用到Stream基本上都是对集合的操作。</p>
-<h3 id="2-1-通过集合-数组创建"><a href="#2-1-通过集合-数组创建" class="headerlink" title="2.1 通过集合/数组创建"></a>2.1 通过集合/数组创建</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;Integer&gt; integerList = Arrays.asList(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">Stream&lt;Integer&gt; listStream = integerList.stream();</span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span>[] intArr = <span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>&#125;;</span><br><span class="line">IntStream arrStream = Arrays.stream(intArr);</span><br></pre></td></tr></table></figure>
-
-<p>这是我们开发中最常用的一种。</p>
-<blockquote>
-<p>仔细的你可能发现：通过  <code>Arrays.stream()</code> 方法生成流好像不太一样，该方法生成的流是数值流【即 <code>IntStream</code>】而不是 <code>Stream&lt;Integer&gt;</code>。</p>
-</blockquote>
-<p>使用数值流可以避免计算过程中拆箱装箱，提高性能。<code>Stream API</code> 提供了<code>mapToInt</code>、<code>mapToDouble</code>、<code>mapToLong</code> 三种方式将对象流（即<code>Stream&lt;T&gt;</code>）转换成对应的数值流，同时提供了 <code>boxed</code> 方法将数值流转换为对象流。</p>
-<h3 id="2-2-通过值创建"><a href="#2-2-通过值创建" class="headerlink" title="2.2 通过值创建"></a>2.2 通过值创建</h3><ul>
-<li>通过指定值创建</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Stream&lt;Integer&gt; valueStream = Stream.of(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>将多个集合合并为一个流</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;String&gt; strList = Arrays.asList(<span class="string">"公众号"</span>);</span><br><span class="line">List&lt;String&gt; strAnotherList = Arrays.asList(<span class="string">"风尘博客"</span>);</span><br><span class="line">Stream&lt;String&gt; strStream = Stream.concat(strList.stream(), strAnotherList.stream());</span><br></pre></td></tr></table></figure>
-
-<h2 id="三、Stream-API"><a href="#三、Stream-API" class="headerlink" title="三、Stream API"></a>三、Stream API</h2><p>流的操作类型主要分为两种：中间操作和终端操作。</p>
-<h3 id="3-1-中间操作"><a href="#3-1-中间操作" class="headerlink" title="3.1 中间操作"></a>3.1 中间操作</h3><p>一个流可以后面跟随零个或多个中间操作。其目的主要是打开流，做出某种程度的数据映射/过滤，然后返回一个新的流，交给下一个操作使用。这类操作都是惰性化的，仅仅调用到这类方法，并没有真正开始流的遍历。</p>
-<h3 id="3-2-终端操作"><a href="#3-2-终端操作" class="headerlink" title="3.2 终端操作"></a>3.2 终端操作</h3><p>一个流有且只能有一个终端操作，当这个操作执行后，流就被关闭了，无法再被操作，因此一个流只能被遍历一次，若想在遍历需要通过源数据在生成流。终端操作的执行，才会真正开始流的遍历。</p>
-<h2 id="四、中间操作"><a href="#四、中间操作" class="headerlink" title="四、中间操作"></a>四、中间操作</h2><p><code>Stream</code> 有很多中间操作，多个中间操作可以连接起来形成一个流水线，每一个中间操作就像流水线上的一个工人，每人工人都可以对流进行加工，加工后得到的结果还是一个流。</p>
-<h3 id="4-1-数据准备"><a href="#4-1-数据准备" class="headerlink" title="4.1 数据准备"></a>4.1 数据准备</h3><blockquote>
-<p>为了测试方便，我新建了一个实体 <code>StudentDomain.java</code>，这个在文末仓库自己去看下；同时，写了一个组装数据的方法，如下：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">private</span> List&lt;StudentDomain&gt; <span class="title">assStudent</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;StudentDomain&gt; result = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">    StudentDomain studentDomain;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; i++) &#123;</span><br><span class="line">        studentDomain = <span class="keyword">new</span> StudentDomain();</span><br><span class="line">        studentDomain.setId(i);</span><br><span class="line">        studentDomain.setName(<span class="string">"小"</span> + i);</span><br><span class="line">        studentDomain.setSubject(<span class="string">"科学"</span>);</span><br><span class="line">        studentDomain.setScore(Double.valueOf(<span class="number">99</span> - i));</span><br><span class="line">        studentDomain.setClassNum(i % <span class="number">2</span> == <span class="number">0</span> ? <span class="string">"一班"</span> : <span class="string">"二班"</span>);</span><br><span class="line">        result.add(studentDomain);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="4-2-筛选"><a href="#4-2-筛选" class="headerlink" title="4.2 筛选"></a>4.2 筛选</h3><ul>
-<li><code>filter</code></li>
-</ul>
-<p>通过使用 <code>filter</code> 方法进行条件筛选，<code>filter</code> 的方法参数为一个条件。</p>
-<blockquote>
-<p>例如：筛选集合中大于 <code>3</code> 的数值。</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;Integer&gt; filterList = Arrays.asList(<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">Stream&lt;Integer&gt; filterStream = filterList.stream().filter(i -&gt; i &gt; <span class="number">3</span>);</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>limit</code></li>
-</ul>
-<p>通过 <code>limit</code> 方法指定返回前面 <code>n</code> 个元素，<code>limit</code>的参数值必须 <code>&gt;=0</code>，否则将会抛出异常。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;Integer&gt; limitList = Arrays.asList(<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">Stream&lt;Integer&gt; limitStream = limitList.stream().limit(<span class="number">3</span>);</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>skip</code></li>
-</ul>
-<p>通过 <code>skip</code> 方法跳过流中的前面 <code>n</code> 个元素，<code>skip</code> 的参数值必须 <code>&gt;=0</code> ，否则将会抛出异常。</p>
-<blockquote>
-<p>该例子跳过前两个元素，所以打印结果为 <code>2,3,4,5</code></p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;Integer&gt; skipList = Arrays.asList(<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">Stream&lt;Integer&gt; skipStream = skipList.stream().skip(<span class="number">2</span>);</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>distinct</code></li>
-</ul>
-<p>通过该方法快速去除重复的元素。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;Integer&gt; distinctList = Arrays.asList(<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">Stream&lt;Integer&gt; distinctStream = distinctList.stream().distinct();</span><br></pre></td></tr></table></figure>
-
-<h3 id="4-3-映射"><a href="#4-3-映射" class="headerlink" title="4.3 映射"></a>4.3 映射</h3><ul>
-<li><code>map</code></li>
-</ul>
-<p>通过 <code>map</code> 方法可以完成映射，例如取出 <code>Student</code> 中的每个 元素中的<code>name</code> 和 <code>score</code> 属性。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;StudentDomain&gt; studentDomainList = assStudent();</span><br><span class="line">Stream&lt;String&gt; mapStream = studentDomainList.stream()</span><br><span class="line">        .map(item -&gt; item.getName() + <span class="string">"考试得分: "</span> + item.getScore());</span><br><span class="line">mapStream.forEach(System.out::println);</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">小0考试得分: 99.0</span><br><span class="line">小1考试得分: 98.0</span><br><span class="line">小2考试得分: 97.0</span><br><span class="line">小3考试得分: 96.0</span><br><span class="line">小4考试得分: 95.0</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>flatMap</code></li>
-</ul>
-<p>有些场景，如 <code>map(w -&gt; w.split(&quot; &quot;))</code> 的返回值为 <code>Stream&lt;String[]&gt;</code>，但我们想获取 <code>Stream&lt;String&gt;</code>，这时候可以通过<code>flatMap</code>方法完成转换。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;String&gt; flatMapList = Arrays.asList(<span class="string">"风尘_博客"</span>, <span class="string">"微信_公众号"</span>);</span><br><span class="line">Stream&lt;String&gt; flatMapStream = flatMapList.stream()</span><br><span class="line">                .map(w -&gt; w.split(<span class="string">"_"</span>))</span><br><span class="line">                .flatMap(Arrays::stream);</span><br><span class="line">flatMapStream.forEach(System.out::println);</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">风尘</span><br><span class="line">博客</span><br><span class="line">微信</span><br><span class="line">公众号</span><br></pre></td></tr></table></figure>
-<h3 id="4-4-排序"><a href="#4-4-排序" class="headerlink" title="4.4 排序"></a>4.4 排序</h3><ul>
-<li><code>sorted</code></li>
-</ul>
-<p>对流中的元素进行排序，默认会根据元素的自然顺序排序，也可传入<code>Comparator</code> 接口实现指定排序逻辑。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;StudentDomain&gt; sortedList = assStudent();</span><br><span class="line"><span class="comment">// 自然顺序（正序）</span></span><br><span class="line">sortedList = sortedList.stream().sorted(comparing(StudentDomain::getScore)).collect(Collectors.toList());</span><br><span class="line">sortedList.forEach(System.out::println);</span><br><span class="line"><span class="comment">// 倒序</span></span><br><span class="line">sortedList = sortedList.stream().sorted(comparing(StudentDomain::getScore).reversed()).collect(Collectors.toList());</span><br><span class="line">sortedList.forEach(System.out::println);</span><br></pre></td></tr></table></figure>
-
-<h2 id="五、终止操作"><a href="#五、终止操作" class="headerlink" title="五、终止操作"></a>五、终止操作</h2><p>终止操作会消耗流，产生一个最终结果。也就是说，在最终操作之后，不能再次使用流，也不能在使用任何中间操作，否则将抛出异常：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">java.lang.IllegalStateException: stream has already been operated upon or closed</span><br></pre></td></tr></table></figure>
-
-<h3 id="5-1-查找与匹配"><a href="#5-1-查找与匹配" class="headerlink" title="5.1 查找与匹配"></a>5.1 查找与匹配</h3><ul>
-<li><code>max/min/count</code></li>
-</ul>
-<p>统计出流中元素最大/最小/总数值。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;StudentDomain&gt; studentDomainList = assStudent();</span><br><span class="line"><span class="comment">// max</span></span><br><span class="line">Optional&lt;Double&gt; max = studentDomainList.stream().map(StudentDomain::getScore).max(Double::compareTo);</span><br><span class="line">System.out.println(<span class="string">"最高分数："</span> + max.get());</span><br><span class="line"><span class="comment">// count</span></span><br><span class="line">Optional&lt;Double&gt; min = studentDomainList.stream().map(StudentDomain::getScore).min(Double::compareTo);</span><br><span class="line">System.out.println(<span class="string">"最低分数："</span> + min.get());</span><br><span class="line"><span class="comment">// count</span></span><br><span class="line">Long count = studentDomainList.stream().count();</span><br><span class="line">System.out.println(count);</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>findFirst</code></li>
-</ul>
-<p>查找第一个。</p>
-<ul>
-<li><code>findAny</code></li>
-</ul>
-<p>随机查找一个。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;StudentDomain&gt; foundEmpty = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">List&lt;StudentDomain&gt; foundList = assStudent();</span><br><span class="line"><span class="comment">// 默认</span></span><br><span class="line">StudentDomain student = <span class="keyword">new</span> StudentDomain();</span><br><span class="line">student.setName(<span class="string">"默认"</span>);</span><br><span class="line">student.setId(<span class="number">0</span>);</span><br><span class="line">student.setScore(<span class="number">100.0</span>);</span><br><span class="line">student.setSubject(<span class="string">"数学"</span>);</span><br><span class="line"><span class="comment">// findFirst，返回第一个元素</span></span><br><span class="line">System.out.println(foundList.stream().findFirst().get().toString());</span><br><span class="line"><span class="comment">// findAny，任意返回一个元素, 若不存在则返回默认</span></span><br><span class="line">System.out.println(foundEmpty.stream().findAny().orElse(student));</span><br></pre></td></tr></table></figure>
-
-<p>输出结果</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">StudentDomain&#123;id&#x3D;1, name&#x3D;&#39;小1&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;98.0&#125;</span><br><span class="line">StudentDomain&#123;id&#x3D;0, name&#x3D;&#39;默认&#39;, subject&#x3D;&#39;数学&#39;, score&#x3D;100.0&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>allMatch</code></li>
-</ul>
-<p>检查是否匹配流中所有元素。</p>
-<ul>
-<li><code>anyMatch</code></li>
-</ul>
-<p>检查是否至少匹配流中的一个元素。</p>
-<ul>
-<li><code>noneMatch</code></li>
-</ul>
-<p>全部没有匹配的元素。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// allMatch</span></span><br><span class="line">        List&lt;Integer&gt; matchList = Arrays.asList(<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line"><span class="keyword">if</span> (matchList.stream().allMatch(i -&gt; i &gt; <span class="number">3</span>)) &#123;</span><br><span class="line">    System.out.println(<span class="string">"值都大于3"</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// anyMatch</span></span><br><span class="line"><span class="keyword">if</span> (matchList.stream().anyMatch(i -&gt; i &gt; <span class="number">3</span>)) &#123;</span><br><span class="line">    System.out.println(<span class="string">"存在大于3的值"</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// noneMatch</span></span><br><span class="line"><span class="keyword">if</span> (matchList.stream().noneMatch(i -&gt; i &gt; <span class="number">3</span>)) &#123;</span><br><span class="line">    System.out.println(<span class="string">"值都小于3"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="5-2-collect"><a href="#5-2-collect" class="headerlink" title="5.2 collect"></a>5.2 collect</h3><p><code>collect</code> 是个非常有用的操作，可以将流中的元素收集成为另一种形式便于我们使用；该方法需要传入 <code>Collector</code> 类型，但是手动实现此类型还比较麻烦，通常用 <code>Collectors</code> 工具类来构建我们想要返回的形式：</p>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Collectors.toList()</td>
-<td>将流收集为List形式</td>
-</tr>
-<tr>
-<td>Collectors.toSet()</td>
-<td>将流收集为Set形式</td>
-</tr>
-<tr>
-<td>Collectors.toCollection()</td>
-<td>收集为指定的集合形式，如LinkedList…等</td>
-</tr>
-<tr>
-<td>Collectors.toMap()</td>
-<td>收集为Map</td>
-</tr>
-<tr>
-<td>Collectors.collectingAndThen()</td>
-<td>允许对生成的集合再做一次操作</td>
-</tr>
-<tr>
-<td>Collectors.joining()</td>
-<td>用来连接流中的元素，比如用逗号分隔元素连接起来</td>
-</tr>
-<tr>
-<td>Collectors.counting()</td>
-<td>统计元素个数</td>
-</tr>
-<tr>
-<td>Collectors.summarizingDouble/Long/Int()</td>
-<td>为流中元素生成统计信息，返回的是一个统计类</td>
-</tr>
-<tr>
-<td>Collectors.averagingDouble/Long/Int()</td>
-<td>对流中元素做平均</td>
-</tr>
-<tr>
-<td>Collectors.maxBy()/minBy()</td>
-<td>根据指定的Comparator，返回流中最大/最小值</td>
-</tr>
-<tr>
-<td>Collectors.groupingBy()</td>
-<td>根据某些属性分组</td>
-</tr>
-<tr>
-<td>Collectors.partitioningBy()</td>
-<td>根据指定条件</td>
-</tr>
-</tbody></table>
-<p>拿几个常用的举例，详见代码</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// toList 取出学生姓名组成新的集合</span></span><br><span class="line">List&lt;StudentDomain&gt; studentDomainList = assStudent();</span><br><span class="line">List&lt;String&gt; toList = studentDomainList.stream()</span><br><span class="line">        .map(studentDomain -&gt; studentDomain.getName())</span><br><span class="line">        .collect(Collectors.toList());</span><br><span class="line">System.out.println(toList);</span><br><span class="line"></span><br><span class="line"><span class="comment">// toMap 取出学生名字和分数，组成map</span></span><br><span class="line">Map&lt;String, String&gt; toMap = studentDomainList.stream()</span><br><span class="line">        .collect(Collectors.toMap(</span><br><span class="line">                <span class="comment">// 取学生姓名为key</span></span><br><span class="line">                item -&gt; item.getName(),</span><br><span class="line">                <span class="comment">// 取分数为value</span></span><br><span class="line">                item -&gt; String.valueOf(item.getScore())));</span><br><span class="line">System.out.println(toMap);</span><br><span class="line"></span><br><span class="line"><span class="comment">// groupingBy 将学生按班级分组</span></span><br><span class="line">Map&lt;String, List&lt;StudentDomain&gt;&gt; collect = studentDomainList.stream()</span><br><span class="line">        .collect(Collectors.groupingBy(per -&gt; per.getClassNum()));</span><br><span class="line">System.out.println(collect);</span><br><span class="line"></span><br><span class="line"><span class="comment">// joining 取出学生姓名拼成字符串</span></span><br><span class="line">String str = studentDomainList.stream()</span><br><span class="line">        .map(student -&gt; student.getName())</span><br><span class="line">        .collect(Collectors.joining(<span class="string">","</span>, <span class="string">"&#123;"</span>, <span class="string">"&#125;"</span>));</span><br><span class="line">System.out.println(str);</span><br></pre></td></tr></table></figure>
-<p>运行结果：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">[小1, 小2, 小3, 小4, 小5]</span><br><span class="line">&#123;小2&#x3D;97.0, 小1&#x3D;98.0, 小5&#x3D;94.0, 小4&#x3D;95.0, 小3&#x3D;96.0&#125;</span><br><span class="line">&#123;一班&#x3D;[StudentDomain&#123;id&#x3D;2, name&#x3D;&#39;小2&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;97.0, classNum&#x3D;&#39;一班&#39;&#125;, StudentDomain&#123;id&#x3D;4, name&#x3D;&#39;小4&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;95.0, classNum&#x3D;&#39;一班&#39;&#125;], 二班&#x3D;[StudentDomain&#123;id&#x3D;1, name&#x3D;&#39;小1&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;98.0, classNum&#x3D;&#39;二班&#39;&#125;, StudentDomain&#123;id&#x3D;3, name&#x3D;&#39;小3&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;96.0, classNum&#x3D;&#39;二班&#39;&#125;, StudentDomain&#123;id&#x3D;5, name&#x3D;&#39;小5&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;94.0, classNum&#x3D;&#39;二班&#39;&#125;]&#125;</span><br><span class="line">&#123;小1,小2,小3,小4,小5&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="六、总结"><a href="#六、总结" class="headerlink" title="六、总结"></a>六、总结</h2><p>本文主要是介绍 <code>Stream</code>基础的使用，应该也是我开发中使用频率较高的几种。当然，还有一些进阶玩儿法，等我整理好，一并分享给大家。</p>
-<p><a href="https://github.com/vandusty/jdk/tree/master/JDK-Stream" target="_blank" rel="noopener">测试代码地址</a></p>
-]]></content>
-      <categories>
-        <category>JDK</category>
-      </categories>
-      <tags>
-        <tag>Stream</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>【Git 系列】git stash</title>
     <url>/2021/11/01/5fd8a966.html</url>
     <content><![CDATA[<p><code>stash</code>在英文意思是隐藏。<code>git stash</code> 的作用也是隐藏没完成的代码，防止它干扰<strong>别人</strong>或者<strong>新分支</strong>的工作。</p>
@@ -1611,6 +1392,225 @@
       </categories>
       <tags>
         <tag>并发编程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>【JDK 8】Stream 基础篇</title>
+    <url>/2020/11/12/87a2a94c.html</url>
+    <content><![CDATA[<blockquote>
+<p>在 <code>Java</code> 中，集合和数组是我们经常会用到的数据结构，需要经常对他们做增、删、改、查、聚合、统计、过滤等操作。</p>
+</blockquote>
+<a id="more"></a>
+
+
+<h2 id="一、Stream-简介"><a href="#一、Stream-简介" class="headerlink" title="一、Stream 简介"></a>一、Stream 简介</h2><p><code>Java8</code> 之后 使用 <code>Stream API</code> 可以像 <code>SQL</code> 语句从数据库查询数据的直观方式来提供一种对 <code>Java</code> 集合运算和表达的高阶抽象，极大提高 <code>Java</code> 程序员的生产力，让程序员写出高效率、干净、简洁的代码。</p>
+<h3 id="1-1-为什么叫【流】"><a href="#1-1-为什么叫【流】" class="headerlink" title="1.1 为什么叫【流】"></a>1.1 为什么叫【流】</h3><p><code>Stream API</code> 这种风格将要处理的元素集合看作一种流，流在管道中传输，并且可以在管道的节点上进行处理，比如筛选，排序，聚合等。但它跟 <code>I/O</code> 完全不是一回事儿，<code>Stream</code> 只是对集合对象功能的增强，它专注于对集合对象进行各种非常便利、高效的聚合操作，或者大批量数据操作。</p>
+<h3 id="1-2-Stream-特性"><a href="#1-2-Stream-特性" class="headerlink" title="1.2 Stream 特性"></a>1.2 Stream 特性</h3><ul>
+<li>无存储。</li>
+</ul>
+<p><code>Stream</code> 不是一种数据结构，它只是某种数据源的一个视图，数据源可以是一个数组，<code>Java</code> 容器或 <code>I/O</code>、<code>channel</code> 等。</p>
+<ul>
+<li>为函数式编程而生。</li>
+</ul>
+<p>对 <code>Stream</code> 的任何修改都不会修改背后的数据源，比如对 <code>Stream</code> 执行过滤操作并不会删除被过滤的元素，而是会产生一个不包含被过滤元素的新 <code>Stream</code>。</p>
+<ul>
+<li>惰式执行。</li>
+</ul>
+<p><code>Stream</code> 上的操作并不会立即执行，只有等到用户真正需要结果的时候才会执行。</p>
+<ul>
+<li>可消费性。</li>
+</ul>
+<p><code>Stream</code> 只能被【消费】一次，一旦遍历过就会失效，就像容器的迭代器那样，想要再次遍历必须重新生成。</p>
+<h3 id="1-3-为什么要使用-Stream"><a href="#1-3-为什么要使用-Stream" class="headerlink" title="1.3 为什么要使用 Stream"></a>1.3 为什么要使用 Stream</h3><p>函数式编程带来的好处尤为明显。这种代码更多地表达了业务逻辑的意图，而不是它的实现机制。易读的代码也易于维护、更可靠、更不容易出错。</p>
+<blockquote>
+<p>这么说吧，在我之前待的项目中，没有使用 <code>Stream</code> ，很多操作循环遍历去执行，感觉也还好。现在 <code>Stream</code> 用多了再回头去看，原来的代码简直太繁琐了。</p>
+</blockquote>
+<h2 id="二、流的创建"><a href="#二、流的创建" class="headerlink" title="二、流的创建"></a>二、流的创建</h2><p>创建流的方式很多，很多类中添加了一些方法来创建相应的流，但是开发中使用到Stream基本上都是对集合的操作。</p>
+<h3 id="2-1-通过集合-数组创建"><a href="#2-1-通过集合-数组创建" class="headerlink" title="2.1 通过集合/数组创建"></a>2.1 通过集合/数组创建</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;Integer&gt; integerList = Arrays.asList(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">Stream&lt;Integer&gt; listStream = integerList.stream();</span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span>[] intArr = <span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>&#125;;</span><br><span class="line">IntStream arrStream = Arrays.stream(intArr);</span><br></pre></td></tr></table></figure>
+
+<p>这是我们开发中最常用的一种。</p>
+<blockquote>
+<p>仔细的你可能发现：通过  <code>Arrays.stream()</code> 方法生成流好像不太一样，该方法生成的流是数值流【即 <code>IntStream</code>】而不是 <code>Stream&lt;Integer&gt;</code>。</p>
+</blockquote>
+<p>使用数值流可以避免计算过程中拆箱装箱，提高性能。<code>Stream API</code> 提供了<code>mapToInt</code>、<code>mapToDouble</code>、<code>mapToLong</code> 三种方式将对象流（即<code>Stream&lt;T&gt;</code>）转换成对应的数值流，同时提供了 <code>boxed</code> 方法将数值流转换为对象流。</p>
+<h3 id="2-2-通过值创建"><a href="#2-2-通过值创建" class="headerlink" title="2.2 通过值创建"></a>2.2 通过值创建</h3><ul>
+<li>通过指定值创建</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Stream&lt;Integer&gt; valueStream = Stream.of(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>将多个集合合并为一个流</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;String&gt; strList = Arrays.asList(<span class="string">"公众号"</span>);</span><br><span class="line">List&lt;String&gt; strAnotherList = Arrays.asList(<span class="string">"风尘博客"</span>);</span><br><span class="line">Stream&lt;String&gt; strStream = Stream.concat(strList.stream(), strAnotherList.stream());</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、Stream-API"><a href="#三、Stream-API" class="headerlink" title="三、Stream API"></a>三、Stream API</h2><p>流的操作类型主要分为两种：中间操作和终端操作。</p>
+<h3 id="3-1-中间操作"><a href="#3-1-中间操作" class="headerlink" title="3.1 中间操作"></a>3.1 中间操作</h3><p>一个流可以后面跟随零个或多个中间操作。其目的主要是打开流，做出某种程度的数据映射/过滤，然后返回一个新的流，交给下一个操作使用。这类操作都是惰性化的，仅仅调用到这类方法，并没有真正开始流的遍历。</p>
+<h3 id="3-2-终端操作"><a href="#3-2-终端操作" class="headerlink" title="3.2 终端操作"></a>3.2 终端操作</h3><p>一个流有且只能有一个终端操作，当这个操作执行后，流就被关闭了，无法再被操作，因此一个流只能被遍历一次，若想在遍历需要通过源数据在生成流。终端操作的执行，才会真正开始流的遍历。</p>
+<h2 id="四、中间操作"><a href="#四、中间操作" class="headerlink" title="四、中间操作"></a>四、中间操作</h2><p><code>Stream</code> 有很多中间操作，多个中间操作可以连接起来形成一个流水线，每一个中间操作就像流水线上的一个工人，每人工人都可以对流进行加工，加工后得到的结果还是一个流。</p>
+<h3 id="4-1-数据准备"><a href="#4-1-数据准备" class="headerlink" title="4.1 数据准备"></a>4.1 数据准备</h3><blockquote>
+<p>为了测试方便，我新建了一个实体 <code>StudentDomain.java</code>，这个在文末仓库自己去看下；同时，写了一个组装数据的方法，如下：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">private</span> List&lt;StudentDomain&gt; <span class="title">assStudent</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;StudentDomain&gt; result = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">    StudentDomain studentDomain;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; i++) &#123;</span><br><span class="line">        studentDomain = <span class="keyword">new</span> StudentDomain();</span><br><span class="line">        studentDomain.setId(i);</span><br><span class="line">        studentDomain.setName(<span class="string">"小"</span> + i);</span><br><span class="line">        studentDomain.setSubject(<span class="string">"科学"</span>);</span><br><span class="line">        studentDomain.setScore(Double.valueOf(<span class="number">99</span> - i));</span><br><span class="line">        studentDomain.setClassNum(i % <span class="number">2</span> == <span class="number">0</span> ? <span class="string">"一班"</span> : <span class="string">"二班"</span>);</span><br><span class="line">        result.add(studentDomain);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-筛选"><a href="#4-2-筛选" class="headerlink" title="4.2 筛选"></a>4.2 筛选</h3><ul>
+<li><code>filter</code></li>
+</ul>
+<p>通过使用 <code>filter</code> 方法进行条件筛选，<code>filter</code> 的方法参数为一个条件。</p>
+<blockquote>
+<p>例如：筛选集合中大于 <code>3</code> 的数值。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;Integer&gt; filterList = Arrays.asList(<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">Stream&lt;Integer&gt; filterStream = filterList.stream().filter(i -&gt; i &gt; <span class="number">3</span>);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>limit</code></li>
+</ul>
+<p>通过 <code>limit</code> 方法指定返回前面 <code>n</code> 个元素，<code>limit</code>的参数值必须 <code>&gt;=0</code>，否则将会抛出异常。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;Integer&gt; limitList = Arrays.asList(<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">Stream&lt;Integer&gt; limitStream = limitList.stream().limit(<span class="number">3</span>);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>skip</code></li>
+</ul>
+<p>通过 <code>skip</code> 方法跳过流中的前面 <code>n</code> 个元素，<code>skip</code> 的参数值必须 <code>&gt;=0</code> ，否则将会抛出异常。</p>
+<blockquote>
+<p>该例子跳过前两个元素，所以打印结果为 <code>2,3,4,5</code></p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;Integer&gt; skipList = Arrays.asList(<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">Stream&lt;Integer&gt; skipStream = skipList.stream().skip(<span class="number">2</span>);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>distinct</code></li>
+</ul>
+<p>通过该方法快速去除重复的元素。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;Integer&gt; distinctList = Arrays.asList(<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">Stream&lt;Integer&gt; distinctStream = distinctList.stream().distinct();</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-映射"><a href="#4-3-映射" class="headerlink" title="4.3 映射"></a>4.3 映射</h3><ul>
+<li><code>map</code></li>
+</ul>
+<p>通过 <code>map</code> 方法可以完成映射，例如取出 <code>Student</code> 中的每个 元素中的<code>name</code> 和 <code>score</code> 属性。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;StudentDomain&gt; studentDomainList = assStudent();</span><br><span class="line">Stream&lt;String&gt; mapStream = studentDomainList.stream()</span><br><span class="line">        .map(item -&gt; item.getName() + <span class="string">"考试得分: "</span> + item.getScore());</span><br><span class="line">mapStream.forEach(System.out::println);</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">小0考试得分: 99.0</span><br><span class="line">小1考试得分: 98.0</span><br><span class="line">小2考试得分: 97.0</span><br><span class="line">小3考试得分: 96.0</span><br><span class="line">小4考试得分: 95.0</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>flatMap</code></li>
+</ul>
+<p>有些场景，如 <code>map(w -&gt; w.split(&quot; &quot;))</code> 的返回值为 <code>Stream&lt;String[]&gt;</code>，但我们想获取 <code>Stream&lt;String&gt;</code>，这时候可以通过<code>flatMap</code>方法完成转换。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;String&gt; flatMapList = Arrays.asList(<span class="string">"风尘_博客"</span>, <span class="string">"微信_公众号"</span>);</span><br><span class="line">Stream&lt;String&gt; flatMapStream = flatMapList.stream()</span><br><span class="line">                .map(w -&gt; w.split(<span class="string">"_"</span>))</span><br><span class="line">                .flatMap(Arrays::stream);</span><br><span class="line">flatMapStream.forEach(System.out::println);</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">风尘</span><br><span class="line">博客</span><br><span class="line">微信</span><br><span class="line">公众号</span><br></pre></td></tr></table></figure>
+<h3 id="4-4-排序"><a href="#4-4-排序" class="headerlink" title="4.4 排序"></a>4.4 排序</h3><ul>
+<li><code>sorted</code></li>
+</ul>
+<p>对流中的元素进行排序，默认会根据元素的自然顺序排序，也可传入<code>Comparator</code> 接口实现指定排序逻辑。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;StudentDomain&gt; sortedList = assStudent();</span><br><span class="line"><span class="comment">// 自然顺序（正序）</span></span><br><span class="line">sortedList = sortedList.stream().sorted(comparing(StudentDomain::getScore)).collect(Collectors.toList());</span><br><span class="line">sortedList.forEach(System.out::println);</span><br><span class="line"><span class="comment">// 倒序</span></span><br><span class="line">sortedList = sortedList.stream().sorted(comparing(StudentDomain::getScore).reversed()).collect(Collectors.toList());</span><br><span class="line">sortedList.forEach(System.out::println);</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、终止操作"><a href="#五、终止操作" class="headerlink" title="五、终止操作"></a>五、终止操作</h2><p>终止操作会消耗流，产生一个最终结果。也就是说，在最终操作之后，不能再次使用流，也不能在使用任何中间操作，否则将抛出异常：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">java.lang.IllegalStateException: stream has already been operated upon or closed</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-1-查找与匹配"><a href="#5-1-查找与匹配" class="headerlink" title="5.1 查找与匹配"></a>5.1 查找与匹配</h3><ul>
+<li><code>max/min/count</code></li>
+</ul>
+<p>统计出流中元素最大/最小/总数值。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;StudentDomain&gt; studentDomainList = assStudent();</span><br><span class="line"><span class="comment">// max</span></span><br><span class="line">Optional&lt;Double&gt; max = studentDomainList.stream().map(StudentDomain::getScore).max(Double::compareTo);</span><br><span class="line">System.out.println(<span class="string">"最高分数："</span> + max.get());</span><br><span class="line"><span class="comment">// count</span></span><br><span class="line">Optional&lt;Double&gt; min = studentDomainList.stream().map(StudentDomain::getScore).min(Double::compareTo);</span><br><span class="line">System.out.println(<span class="string">"最低分数："</span> + min.get());</span><br><span class="line"><span class="comment">// count</span></span><br><span class="line">Long count = studentDomainList.stream().count();</span><br><span class="line">System.out.println(count);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>findFirst</code></li>
+</ul>
+<p>查找第一个。</p>
+<ul>
+<li><code>findAny</code></li>
+</ul>
+<p>随机查找一个。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">List&lt;StudentDomain&gt; foundEmpty = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">List&lt;StudentDomain&gt; foundList = assStudent();</span><br><span class="line"><span class="comment">// 默认</span></span><br><span class="line">StudentDomain student = <span class="keyword">new</span> StudentDomain();</span><br><span class="line">student.setName(<span class="string">"默认"</span>);</span><br><span class="line">student.setId(<span class="number">0</span>);</span><br><span class="line">student.setScore(<span class="number">100.0</span>);</span><br><span class="line">student.setSubject(<span class="string">"数学"</span>);</span><br><span class="line"><span class="comment">// findFirst，返回第一个元素</span></span><br><span class="line">System.out.println(foundList.stream().findFirst().get().toString());</span><br><span class="line"><span class="comment">// findAny，任意返回一个元素, 若不存在则返回默认</span></span><br><span class="line">System.out.println(foundEmpty.stream().findAny().orElse(student));</span><br></pre></td></tr></table></figure>
+
+<p>输出结果</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">StudentDomain&#123;id&#x3D;1, name&#x3D;&#39;小1&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;98.0&#125;</span><br><span class="line">StudentDomain&#123;id&#x3D;0, name&#x3D;&#39;默认&#39;, subject&#x3D;&#39;数学&#39;, score&#x3D;100.0&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>allMatch</code></li>
+</ul>
+<p>检查是否匹配流中所有元素。</p>
+<ul>
+<li><code>anyMatch</code></li>
+</ul>
+<p>检查是否至少匹配流中的一个元素。</p>
+<ul>
+<li><code>noneMatch</code></li>
+</ul>
+<p>全部没有匹配的元素。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// allMatch</span></span><br><span class="line">        List&lt;Integer&gt; matchList = Arrays.asList(<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line"><span class="keyword">if</span> (matchList.stream().allMatch(i -&gt; i &gt; <span class="number">3</span>)) &#123;</span><br><span class="line">    System.out.println(<span class="string">"值都大于3"</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// anyMatch</span></span><br><span class="line"><span class="keyword">if</span> (matchList.stream().anyMatch(i -&gt; i &gt; <span class="number">3</span>)) &#123;</span><br><span class="line">    System.out.println(<span class="string">"存在大于3的值"</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// noneMatch</span></span><br><span class="line"><span class="keyword">if</span> (matchList.stream().noneMatch(i -&gt; i &gt; <span class="number">3</span>)) &#123;</span><br><span class="line">    System.out.println(<span class="string">"值都小于3"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-collect"><a href="#5-2-collect" class="headerlink" title="5.2 collect"></a>5.2 collect</h3><p><code>collect</code> 是个非常有用的操作，可以将流中的元素收集成为另一种形式便于我们使用；该方法需要传入 <code>Collector</code> 类型，但是手动实现此类型还比较麻烦，通常用 <code>Collectors</code> 工具类来构建我们想要返回的形式：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Collectors.toList()</td>
+<td>将流收集为List形式</td>
+</tr>
+<tr>
+<td>Collectors.toSet()</td>
+<td>将流收集为Set形式</td>
+</tr>
+<tr>
+<td>Collectors.toCollection()</td>
+<td>收集为指定的集合形式，如LinkedList…等</td>
+</tr>
+<tr>
+<td>Collectors.toMap()</td>
+<td>收集为Map</td>
+</tr>
+<tr>
+<td>Collectors.collectingAndThen()</td>
+<td>允许对生成的集合再做一次操作</td>
+</tr>
+<tr>
+<td>Collectors.joining()</td>
+<td>用来连接流中的元素，比如用逗号分隔元素连接起来</td>
+</tr>
+<tr>
+<td>Collectors.counting()</td>
+<td>统计元素个数</td>
+</tr>
+<tr>
+<td>Collectors.summarizingDouble/Long/Int()</td>
+<td>为流中元素生成统计信息，返回的是一个统计类</td>
+</tr>
+<tr>
+<td>Collectors.averagingDouble/Long/Int()</td>
+<td>对流中元素做平均</td>
+</tr>
+<tr>
+<td>Collectors.maxBy()/minBy()</td>
+<td>根据指定的Comparator，返回流中最大/最小值</td>
+</tr>
+<tr>
+<td>Collectors.groupingBy()</td>
+<td>根据某些属性分组</td>
+</tr>
+<tr>
+<td>Collectors.partitioningBy()</td>
+<td>根据指定条件</td>
+</tr>
+</tbody></table>
+<p>拿几个常用的举例，详见代码</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// toList 取出学生姓名组成新的集合</span></span><br><span class="line">List&lt;StudentDomain&gt; studentDomainList = assStudent();</span><br><span class="line">List&lt;String&gt; toList = studentDomainList.stream()</span><br><span class="line">        .map(studentDomain -&gt; studentDomain.getName())</span><br><span class="line">        .collect(Collectors.toList());</span><br><span class="line">System.out.println(toList);</span><br><span class="line"></span><br><span class="line"><span class="comment">// toMap 取出学生名字和分数，组成map</span></span><br><span class="line">Map&lt;String, String&gt; toMap = studentDomainList.stream()</span><br><span class="line">        .collect(Collectors.toMap(</span><br><span class="line">                <span class="comment">// 取学生姓名为key</span></span><br><span class="line">                item -&gt; item.getName(),</span><br><span class="line">                <span class="comment">// 取分数为value</span></span><br><span class="line">                item -&gt; String.valueOf(item.getScore())));</span><br><span class="line">System.out.println(toMap);</span><br><span class="line"></span><br><span class="line"><span class="comment">// groupingBy 将学生按班级分组</span></span><br><span class="line">Map&lt;String, List&lt;StudentDomain&gt;&gt; collect = studentDomainList.stream()</span><br><span class="line">        .collect(Collectors.groupingBy(per -&gt; per.getClassNum()));</span><br><span class="line">System.out.println(collect);</span><br><span class="line"></span><br><span class="line"><span class="comment">// joining 取出学生姓名拼成字符串</span></span><br><span class="line">String str = studentDomainList.stream()</span><br><span class="line">        .map(student -&gt; student.getName())</span><br><span class="line">        .collect(Collectors.joining(<span class="string">","</span>, <span class="string">"&#123;"</span>, <span class="string">"&#125;"</span>));</span><br><span class="line">System.out.println(str);</span><br></pre></td></tr></table></figure>
+<p>运行结果：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">[小1, 小2, 小3, 小4, 小5]</span><br><span class="line">&#123;小2&#x3D;97.0, 小1&#x3D;98.0, 小5&#x3D;94.0, 小4&#x3D;95.0, 小3&#x3D;96.0&#125;</span><br><span class="line">&#123;一班&#x3D;[StudentDomain&#123;id&#x3D;2, name&#x3D;&#39;小2&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;97.0, classNum&#x3D;&#39;一班&#39;&#125;, StudentDomain&#123;id&#x3D;4, name&#x3D;&#39;小4&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;95.0, classNum&#x3D;&#39;一班&#39;&#125;], 二班&#x3D;[StudentDomain&#123;id&#x3D;1, name&#x3D;&#39;小1&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;98.0, classNum&#x3D;&#39;二班&#39;&#125;, StudentDomain&#123;id&#x3D;3, name&#x3D;&#39;小3&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;96.0, classNum&#x3D;&#39;二班&#39;&#125;, StudentDomain&#123;id&#x3D;5, name&#x3D;&#39;小5&#39;, subject&#x3D;&#39;科学&#39;, score&#x3D;94.0, classNum&#x3D;&#39;二班&#39;&#125;]&#125;</span><br><span class="line">&#123;小1,小2,小3,小4,小5&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="六、总结"><a href="#六、总结" class="headerlink" title="六、总结"></a>六、总结</h2><p>本文主要是介绍 <code>Stream</code>基础的使用，应该也是我开发中使用频率较高的几种。当然，还有一些进阶玩儿法，等我整理好，一并分享给大家。</p>
+<p><a href="https://github.com/vandusty/jdk/tree/master/JDK-Stream" target="_blank" rel="noopener">测试代码地址</a></p>
+]]></content>
+      <categories>
+        <category>JDK</category>
+      </categories>
+      <tags>
+        <tag>Stream</tag>
       </tags>
   </entry>
   <entry>
