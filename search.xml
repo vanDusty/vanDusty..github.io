@@ -1,6 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>【代码优化】List.remove() 剖析</title>
+    <url>/2021/12/12/e4359f9f.html</url>
+    <content><![CDATA[<p>在遍历中删除元素，百分之九十的人都犯过的错，你确定你知道正解？</p>
+<a id="more"></a>
+
+<h2 id="一、犯错经历"><a href="#一、犯错经历" class="headerlink" title="一、犯错经历"></a>一、犯错经历</h2><h3 id="1-1-故事背景"><a href="#1-1-故事背景" class="headerlink" title="1.1 故事背景"></a>1.1 故事背景</h3><p>最近有个需求大致的背景类似：</p>
+<blockquote>
+<p>我已经通过一系列的操作拿到一批学生的考试成绩数据，现在需要筛选成绩大于 <code>95</code> 分的学生名单。</p>
+</blockquote>
+<p>善于写 <code>bug</code> 的我，三下五除二完成了代码的编写：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">shouldCompile</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; studentDomains.size(); i++) &#123;</span><br><span class="line">        <span class="keyword">if</span> (studentDomains.get(i).getScore() &lt; <span class="number">95.0</span>) &#123;</span><br><span class="line">            studentDomains.remove(studentDomains.get(i));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    System.out.println(studentDomains);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试数据中四个学生，成功筛选出了两个 <code>95</code> 分以上的学生，测试成功，打卡下班。</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">[StudentDomain&#123;id=1, name='李四', subject='科学', score=95.0, classNum='一班'&#125;, StudentDomain&#123;id=1, name='王六', subject='科学', score=100.0, classNum='一班'&#125;]</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-貌似，下不了班！"><a href="#1-2-貌似，下不了班！" class="headerlink" title="1.2 貌似，下不了班！"></a>1.2 貌似，下不了班！</h3><blockquote>
+<p>从业 <code>X</code> 年的直觉告诉我，事情没这么简单。</p>
+</blockquote>
+<p>但是自测明明没问题，难道写法有问题？那我换个写法（增强的 <code>for</code> 循环）：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">commonError</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (StudentDomain student : studentDomains) &#123;</span><br><span class="line">        <span class="keyword">if</span> (student.getScore() &lt; <span class="number">95.0</span>) &#123;</span><br><span class="line">            studentDomains.remove(student);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    System.out.println(studentDomains);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>好家伙，这一试不得了，直接报错：<code>ConcurrentModificationException</code>。</p>
+<ul>
+<li>普通 <code>for</code> 循环“没问题”，增强 <code>for</code> 循环有问题，难道是【增强 <code>for</code> 循环】的问题？</li>
+</ul>
+<h3 id="1-3-普通-for-循环真没问题吗？"><a href="#1-3-普通-for-循环真没问题吗？" class="headerlink" title="1.3 普通 for 循环真没问题吗？"></a>1.3 普通 for 循环真没问题吗？</h3><p>为了判断普通 <code>for</code> 循环是否有问题，我将原代码加了执行次数的打印：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">shouldCompile</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    System.out.println(<span class="string">"studentDomains.size():"</span> + studentDomains.size());</span><br><span class="line">    <span class="keyword">int</span> index = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; studentDomains.size(); i++) &#123;</span><br><span class="line">        index ++;</span><br><span class="line">        <span class="keyword">if</span> (studentDomains.get(i).getScore() &lt; <span class="number">95.0</span>) &#123;</span><br><span class="line">            studentDomains.remove(studentDomains.get(i));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    System.out.println(studentDomains);</span><br><span class="line">    System.out.println(<span class="string">"执行次数："</span> + index);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这一加不得了，我的 <code>studentDomains.size()</code> 明明等于 <code>4</code>，怎么循环体内只执行了 <code>2</code> 次。</p>
+<blockquote>
+<p>更巧合的是：执行的两次循环的数据，刚好都符合我的筛选条件，故会让我错以为【需求已完成】。</p>
+</blockquote>
+<h2 id="二、问题剖析"><a href="#二、问题剖析" class="headerlink" title="二、问题剖析"></a>二、问题剖析</h2><p>一个个分析，我们先看为什么普通 <code>for</code> 循环比我们预计的执行次数要少。</p>
+<h3 id="2-1-普通-for-循环次数减少"><a href="#2-1-普通-for-循环次数减少" class="headerlink" title="2.1 普通 for 循环次数减少"></a>2.1 普通 for 循环次数减少</h3><p>这个原因其实稍微有点儿开发经验的人应该都知道：<strong>在循环中删除元素后，<code>List</code> 的索引会自动变化，<code>List.size()</code> 获取到的 <code>List</code> 长度也会实时更新，所以会造成漏掉被删除元素后一个索引的元素。</strong></p>
+<blockquote>
+<p>比如：循环到第 <code>1</code> 个元素时你把它删了，那么第二次循环本应访问第 <code>2</code> 个元素，但这时实际上访问到的是原来 <code>List</code> 的第 <code>3</code> 个元素，因为第 <code>1</code> 个元素被删除了，原来的第 <code>3</code> 个元素变成了现在的第 <code>2</code> 个元素，这就造成了元素的遗漏。</p>
+</blockquote>
+<h3 id="2-2-增强-for-循环抛错"><a href="#2-2-增强-for-循环抛错" class="headerlink" title="2.2 增强 for 循环抛错"></a>2.2 增强 for 循环抛错</h3><ul>
+<li>我们先看 <code>JDK</code> 源码中 <code>ArrayList</code> 的 <code>remove()</code> 源码是怎么实现的：</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">remove</span><span class="params">(Object o)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (o == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> index = <span class="number">0</span>; index &lt; size; index++)</span><br><span class="line">            <span class="keyword">if</span> (elementData[index] == <span class="keyword">null</span>) &#123;</span><br><span class="line">                fastRemove(index);</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> index = <span class="number">0</span>; index &lt; size; index++)</span><br><span class="line">            <span class="keyword">if</span> (o.equals(elementData[index])) &#123;</span><br><span class="line">                fastRemove(index);</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>只要不为空，程序的执行路径会走到 <code>else</code> 路径下，最终调用 <code>fastRemove()</code> 方法：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">fastRemove</span><span class="params">(<span class="keyword">int</span> index)</span> </span>&#123;</span><br><span class="line">    modCount++;</span><br><span class="line">    <span class="keyword">int</span> numMoved = size - index - <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">if</span> (numMoved &gt; <span class="number">0</span>)</span><br><span class="line">        System.arraycopy(elementData, index+<span class="number">1</span>, elementData, index, numMoved);</span><br><span class="line">    elementData[--size] = <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>fastRemove()</code> 方法中，看到第 <code>2</code> 行【把 <code>modCount</code> 变量的值加 <code>1</code>】。</p>
+<ul>
+<li>增强 <code>for</code> 循环实际执行</li>
+</ul>
+<p><img src="https://img-blog.csdnimg.cn/img_convert/da90ed4b4499c4d91fb5da272d26a67f.png" alt="01"></p>
+<p>通过编译代码可以看到：增强 <code>for</code> 循环在实际执行时，其实使用的是<code>Iterator</code>，使用的核心方法是 <code>hasnext()</code> 和 <code>next()</code>。</p>
+<p>而 <code>next()</code> 方法调用了 <code>checkForComodification()</code>：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">checkForComodification</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (modCount != expectedModCount)</span><br><span class="line">         <span class="keyword">throw</span> <span class="keyword">new</span> ConcurrentModificationException();</span><br><span class="line"> 	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看到 <code>throw new ConcurrentModificationException()</code> 那么就可以结案了：</p>
+<p><strong>因为上面的 <code>remove()</code> 方法修改了 <code>modCount</code> 的值，所以这里肯定会抛出异常。</strong></p>
+<h2 id="三、正确方式"><a href="#三、正确方式" class="headerlink" title="三、正确方式"></a>三、正确方式</h2><p>既然知道了普通 <code>for</code> 循环和增强 <code>for</code> 循环都不能用的原因，那么我们先从这两个地方入手。</p>
+<h3 id="3-1-优化普通-for-循环"><a href="#3-1-优化普通-for-循环" class="headerlink" title="3.1 优化普通 for 循环"></a>3.1 优化普通 for 循环</h3><blockquote>
+<p>我们知道使用普通 <code>for</code> 循环有问题的原因是<strong>因为数组坐标发生了变化，而我们仍使用原坐标进行操作。</strong></p>
+</blockquote>
+<ul>
+<li>移除元素的同时，变更坐标。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">forModifyIndex</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; studentDomains.size(); i++) &#123;</span><br><span class="line">        StudentDomain item = studentDomains.get(i);</span><br><span class="line">        <span class="keyword">if</span> (item.getScore() &lt; <span class="number">95.0</span>) &#123;</span><br><span class="line">            studentDomains.remove(i);</span><br><span class="line">            <span class="comment">// 关键是这里：移除元素同时变更坐标</span></span><br><span class="line">            i = i - <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    System.out.println(studentDomains);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>倒序遍历</li>
+</ul>
+<blockquote>
+<p>采用倒序的方式可以不用变更坐标，因为：后一个元素被移除的话，前一个元素的坐标是不受影响的，不会导致跳过某个元素。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">forOptimization</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;StudentDomain&gt; studentDomains = genData();</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = studentDomains.size() - <span class="number">1</span>; i &gt;= <span class="number">0</span>; i--) &#123;</span><br><span class="line">        StudentDomain item = studentDomains.get(i);</span><br><span class="line">        <span class="keyword">if</span> (item.getScore() &lt; <span class="number">95.0</span>) &#123;</span><br><span class="line">            studentDomains.remove(i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    System.out.println(studentDomains);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-使用-Iterator-的-remove"><a href="#3-2-使用-Iterator-的-remove" class="headerlink" title="3.2 使用 Iterator 的 remove()"></a>3.2 使用 Iterator 的 remove()</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">iteratorRemove</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Iterator&lt;StudentDomain&gt; iterator = studentDomains.iterator();</span><br><span class="line">    <span class="keyword">while</span> (iterator.hasNext()) &#123;</span><br><span class="line">        StudentDomain student = iterator.next();</span><br><span class="line">        <span class="keyword">if</span> (student.getScore() &lt; <span class="number">95.0</span>) &#123;</span><br><span class="line">            iterator.remove();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    System.out.println(studentDomains);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>你肯定有疑问，为什么迭代器的 <code>remove()</code> 方法就可以呢，同样的，我们来看看源码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">remove</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (lastRet &lt; <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException();</span><br><span class="line">    checkForComodification();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ArrayList.<span class="keyword">this</span>.remove(lastRet);</span><br><span class="line">        cursor = lastRet;</span><br><span class="line">        lastRet = -<span class="number">1</span>;</span><br><span class="line">        expectedModCount = modCount;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IndexOutOfBoundsException ex) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ConcurrentModificationException();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以看到：每次执行 <code>remove()</code> 方法的时候，都会将 <code>modCount</code> 的值赋值给 <code>expectedModCount</code>，这样 <code>2</code> 个变量就相等了。</p>
+<h3 id="3-3-Stream-的-filter"><a href="#3-3-Stream-的-filter" class="headerlink" title="3.3 Stream 的 filter()"></a>3.3 Stream 的 filter()</h3><p>了解 <code>Stream</code> 的童鞋应该都能想到该方法，这里就不过多赘述了。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">streamFilter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;StudentDomain&gt; studentDomains = genData();</span><br><span class="line">    studentDomains = studentDomains.stream().filter(student -&gt; student.getScore() &gt;= <span class="number">95.0</span>).collect(Collectors.toList());</span><br><span class="line">    System.out.println(studentDomains);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-Collection-removeIf-【推荐】"><a href="#3-4-Collection-removeIf-【推荐】" class="headerlink" title="3.4 Collection.removeIf()【推荐】"></a>3.4 Collection.removeIf()【推荐】</h3><p>在 <code>JDK1.8</code> 中，<code>Collection</code> 以及其子类新加入了 <code>removeIf()</code> 方法，作用是按照一定规则过滤集合中的元素。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">removeIf</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;StudentDomain&gt; studentDomains = genData();</span><br><span class="line">    studentDomains.removeIf(student -&gt; student.getScore() &lt; <span class="number">95.0</span>);</span><br><span class="line">    System.out.println(studentDomains);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看下 <code>removeIf()</code> 方法的源码，会发现其实底层也是用的 <code>Iterator</code> 的<code>remove()</code> 方法：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">default</span> <span class="keyword">boolean</span> <span class="title">removeIf</span><span class="params">(Predicate&lt;? <span class="keyword">super</span> E&gt; filter)</span> </span>&#123;</span><br><span class="line">    Objects.requireNonNull(filter);</span><br><span class="line">    <span class="keyword">boolean</span> removed = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">final</span> Iterator&lt;E&gt; each = iterator();</span><br><span class="line">    <span class="keyword">while</span> (each.hasNext()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (filter.test(each.next())) &#123;</span><br><span class="line">            each.remove();</span><br><span class="line">            removed = <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> removed;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="四、总结"><a href="#四、总结" class="headerlink" title="四、总结"></a>四、总结</h2><p>详细认真的看完本文的话，最大感悟应该是：<strong>还是源码靠谱！</strong></p>
+<h3 id="4-1-啰嗦几句"><a href="#4-1-啰嗦几句" class="headerlink" title="4.1 啰嗦几句"></a>4.1 啰嗦几句</h3><p>其实在刚从事 <code>Java</code> 开发的时候，这个问题就困扰过我，当时只想着解决问题，所以采用了很笨的方式：</p>
+<blockquote>
+<p>新建一个新的 <code>List</code>，遍历老的 <code>List</code> ，将满足条件的元素放到新的元素中，这样的话，最后也完成了当时的任务。</p>
+</blockquote>
+<p>现在想一想，几年前，如果就像现在一样，抽空好好想想为什么不能直接 <code>remove()</code> ，多问几个为什么，估计自己会比现在优秀很多吧。</p>
+<p>当然，只要意识到这个，<strong>什么时候都不算晚</strong>，共勉！</p>
+<h3 id="4-2-文中代码示例"><a href="#4-2-文中代码示例" class="headerlink" title="4.2 文中代码示例"></a>4.2 文中代码示例</h3><p><a href="https://github.com/vanDusty/JDK/tree/master/code-optimization" target="_blank" rel="noopener" title="Github/vanDusty">Github/vanDusty</a></p>
+]]></content>
+      <categories>
+        <category>代码优化</category>
+      </categories>
+      <tags>
+        <tag>代码优化</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>【JDK 8】Stream 基础篇</title>
     <url>/2021/11/12/87a2a94c.html</url>
     <content><![CDATA[<blockquote>
@@ -5976,8 +6081,8 @@
         <category>Spring Boot</category>
       </categories>
       <tags>
-        <tag>短信</tag>
         <tag>验证码</tag>
+        <tag>短信</tag>
         <tag>阿里云</tag>
       </tags>
   </entry>
@@ -6207,9 +6312,9 @@ public String sendSms(SmsParams smsParams) {
         <category>Spring Boot</category>
       </categories>
       <tags>
+        <tag>验证码</tag>
         <tag>短信</tag>
         <tag>腾讯云</tag>
-        <tag>验证码</tag>
       </tags>
   </entry>
   <entry>
